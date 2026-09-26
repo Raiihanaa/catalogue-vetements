@@ -504,13 +504,6 @@
       });
       imgwrap.appendChild(heart);
 
-      const NEW_THRESHOLD_MS = 14 * 24 * 60 * 60 * 1000;
-      if (im.addedAt && (Date.now() - im.addedAt) < NEW_THRESHOLD_MS) {
-        const badge = document.createElement('span');
-        badge.className = 'new-badge';
-        badge.textContent = 'Nouveau';
-        imgwrap.appendChild(badge);
-      }
 
       const meta = document.createElement('div');
       meta.className = 'meta';
