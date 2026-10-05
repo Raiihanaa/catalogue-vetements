@@ -1411,9 +1411,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       img.src = url;
     });
   }
+  const PER_PAGE = 5;
   async function buildCartImage() {
-    const items = CATALOG.images.filter(function (im) { return CART.has(im.id); });
-    if (!items.length) return null;
+    const all = CATALOG.images.filter(function (im) { return CART.has(im.id); });
+    if (!all.length) return null;
+    const pages = Math.ceil(all.length / PER_PAGE), blobs = [];
+    for (let p = 0; p < pages; p++) blobs.push(await buildCartPage(all, p, pages));
+    return blobs;
+  }
+  async function buildCartPage(all, pageIdx, pageCount) {
+    const items = all.slice(pageIdx * PER_PAGE, (pageIdx + 1) * PER_PAGE);
     const cs = getComputedStyle(document.documentElement);
     const col = function (v, d) { return (cs.getPropertyValue(v) || '').trim() || d; };
     const bg = getComputedStyle(document.body).backgroundColor;
@@ -1427,7 +1434,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     ctx.textAlign = 'center'; ctx.fillStyle = text;
     ctx.font = '600 44px "Cormorant Garamond", Georgia, serif'; ctx.fillText(CATALOG.title || 'Ma sélection', W / 2, 62);
     ctx.fillStyle = muted; ctx.font = '500 20px "Jost", Arial, sans-serif';
-    ctx.fillText('Ma sélection · ' + items.length + ' article' + (items.length > 1 ? 's' : ''), W / 2, 98);
+    ctx.fillText('Ma sélection · ' + all.length + ' article' + (all.length > 1 ? 's' : '') + (pageCount > 1 ? ' · page ' + (pageIdx + 1) + '/' + pageCount : ''), W / 2, 98);
     ctx.textAlign = 'left';
     items.forEach(function (im, i) {
       const y = HEAD + i * ROW;
@@ -1449,7 +1456,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     });
     ctx.textAlign = 'center'; ctx.fillStyle = muted; ctx.font = '400 17px "Jost", Arial, sans-serif';
     ctx.fillText(new Date().toLocaleDateString('fr-FR'), W / 2, H - 26);
-    return new Promise(function (resolve) { c.toBlob(resolve, 'image/png'); });
+    return new Promise(function (resolve) { c.toBlob(resolve, 'image/jpeg', 0.9); });
   }
   // Capture préparée à l'avance : le menu de partage du téléphone exige une réponse immédiate au clic
   let shotPromise = null, shotTimer = null;
@@ -1463,13 +1470,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const msgEl = document.getElementById('cartStatusMsg');
     msgEl.textContent = 'Création de la capture…';
     try {
-      const blob = await (shotPromise || buildCartImage());
-      if (!blob) { msgEl.textContent = 'Ton panier est vide.'; return; }
-      const file = new File([blob], 'ma-selection.png', { type: 'image/png' });
+      const blobs = await (shotPromise || buildCartImage());
+      if (!blobs) { msgEl.textContent = 'Ton panier est vide.'; return; }
+      const files = blobs.map(function (bl, i) {
+        return new File([bl], 'ma-selection' + (blobs.length > 1 ? '-' + (i + 1) : '') + '.jpg', { type: 'image/jpeg' });
+      });
       let shared = false;
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      if (navigator.canShare && navigator.canShare({ files: files })) {
         try {
-          await navigator.share({ files: [file], title: CATALOG.title || 'Ma sélection' });
+          await navigator.share({ files: files });
           msgEl.textContent = 'Capture prête : choisis WhatsApp ou Snapchat pour l\'envoyer.';
           shared = true;
         } catch (err) {
@@ -1477,8 +1486,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         }
       }
       if (!shared) {
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'ma-selection.png';
-        document.body.appendChild(a); a.click(); a.remove();
+        files.forEach(function (file) {
+          const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name;
+          document.body.appendChild(a); a.click(); a.remove();
+        });
         msgEl.textContent = 'Capture enregistrée dans tes téléchargements : joins-la à ta conversation WhatsApp ou Snapchat.';
       }
     } catch (e) {
