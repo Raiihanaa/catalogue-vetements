@@ -318,6 +318,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <div class="admin-row">
     <button class="primary" id="whatsappCartBtn" style="background:#2f8a4e;">Envoyer sur WhatsApp</button>
     <button class="primary" id="snapCartBtn" style="background:#f2c200;color:#111;">Envoyer sur Snapchat</button>
+    <button class="primary" id="shotCartBtn">Envoyer en capture</button>
     <button class="primary" id="copyCartBtn">Copier la liste</button>
     <button class="small" id="clearCartBtn">Vider le panier</button>
   </div>
@@ -1413,6 +1414,85 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const text = buildCustomerText(); const msgEl = document.getElementById('cartStatusMsg');
     if (!text) { msgEl.textContent = 'Remplis au moins un champ.'; return; }
     snapSend(text, msgEl);
+  });
+  // === Capture d'écran de la sélection (image PNG à partager) ===
+  function wrapLines(ctx, text, maxW, maxLines) {
+    const words = String(text).split(/\s+/); const lines = []; let cur = '';
+    for (let i = 0; i < words.length; i++) {
+      const t = cur ? cur + ' ' + words[i] : words[i];
+      if (ctx.measureText(t).width > maxW && cur) { lines.push(cur); cur = words[i]; if (lines.length === maxLines) break; }
+      else cur = t;
+    }
+    if (lines.length < maxLines && cur) lines.push(cur);
+    if (lines.length === maxLines && words.join(' ').length > lines.join(' ').length) lines[maxLines - 1] = lines[maxLines - 1].replace(/\s*\S{0,3}$/, '') + '…';
+    return lines;
+  }
+  function loadImg(url) {
+    return new Promise(function (resolve) {
+      const img = new Image(); img.crossOrigin = 'anonymous';
+      img.onload = function () { resolve(img); }; img.onerror = function () { resolve(null); };
+      img.src = url;
+    });
+  }
+  async function buildCartImage() {
+    const items = CATALOG.images.filter(function (im) { return CART.has(im.id); });
+    if (!items.length) return null;
+    const cs = getComputedStyle(document.documentElement);
+    const col = function (v, d) { return (cs.getPropertyValue(v) || '').trim() || d; };
+    const bg = getComputedStyle(document.body).backgroundColor;
+    const text = col('--text', '#222'), muted = col('--text-muted', '#888'), accent = col('--accent', '#a8552b'), border = col('--border', '#ddd');
+    const imgs = await Promise.all(items.map(function (im) { return loadImg(im.url); }));
+    const W = 900, PAD = 40, ROW = 170, HEAD = 120, FOOT = 70;
+    const H = HEAD + items.length * ROW + FOOT;
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center'; ctx.fillStyle = text;
+    ctx.font = '600 44px "Cormorant Garamond", Georgia, serif'; ctx.fillText(CATALOG.title || 'Ma sélection', W / 2, 62);
+    ctx.fillStyle = muted; ctx.font = '500 20px "Jost", Arial, sans-serif';
+    ctx.fillText('Ma sélection · ' + items.length + ' article' + (items.length > 1 ? 's' : ''), W / 2, 98);
+    ctx.textAlign = 'left';
+    items.forEach(function (im, i) {
+      const y = HEAD + i * ROW;
+      ctx.strokeStyle = border; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke();
+      const bx = PAD, by = y + 10, bw = 120, bh = 150;
+      ctx.fillStyle = border; ctx.fillRect(bx, by, bw, bh);
+      const img = imgs[i];
+      if (img) {
+        const r = Math.max(bw / img.width, bh / img.height), sw = bw / r, sh = bh / r;
+        ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, bx, by, bw, bh);
+      }
+      const tx = PAD + bw + 24, d = getCartDetail(im.id);
+      const label = im.name || [im.category, im.subcategory, im.brand].filter(Boolean).join(' / ') || 'Photo';
+      ctx.fillStyle = text; ctx.font = '500 21px "Jost", Arial, sans-serif';
+      wrapLines(ctx, label, W - PAD - tx, 2).forEach(function (ln, k) { ctx.fillText(ln, tx, by + 30 + k * 28); });
+      ctx.fillStyle = accent; ctx.font = '600 20px "Jost", Arial, sans-serif';
+      ctx.fillText('Quantité : ' + d.qty, tx, by + 100);
+      if (d.note) { ctx.fillStyle = muted; ctx.font = '400 19px "Jost", Arial, sans-serif'; ctx.fillText(wrapLines(ctx, d.note, W - PAD - tx, 1)[0], tx, by + 130); }
+    });
+    ctx.textAlign = 'center'; ctx.fillStyle = muted; ctx.font = '400 17px "Jost", Arial, sans-serif';
+    ctx.fillText(new Date().toLocaleDateString('fr-FR'), W / 2, H - 26);
+    return new Promise(function (resolve) { c.toBlob(resolve, 'image/png'); });
+  }
+  document.getElementById('shotCartBtn').addEventListener('click', async function () {
+    const msgEl = document.getElementById('cartStatusMsg');
+    msgEl.textContent = 'Création de la capture…';
+    try {
+      const blob = await buildCartImage();
+      if (!blob) { msgEl.textContent = 'Ton panier est vide.'; return; }
+      const file = new File([blob], 'ma-selection.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: CATALOG.title || 'Ma sélection' });
+        msgEl.textContent = 'Capture prête : choisis WhatsApp ou Snapchat pour l\'envoyer.';
+      } else {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'ma-selection.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        msgEl.textContent = 'Capture enregistrée dans tes téléchargements : joins-la à ta conversation WhatsApp ou Snapchat.';
+      }
+    } catch (e) {
+      if (e && e.name === 'AbortError') { msgEl.textContent = ''; return; }
+      msgEl.textContent = 'Impossible de créer la capture, utilise « Copier la liste ».';
+    }
   });
   document.getElementById('clearCartBtn').addEventListener('click', function () {
     if (!confirm('Vider le panier ?')) return;
