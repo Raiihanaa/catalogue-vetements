@@ -314,12 +314,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <h2>Ma sélection</h2>
   <div id="cartItems" class="admin-section"></div>
   <div class="step-title">Étape 1 — Demande les prix</div>
-  <p class="pay-note">Envoie ta sélection : on te répond avec les prix.</p>
+  <p class="pay-note">Envoie la capture de ta sélection : on te répond avec les prix.</p>
   <div class="admin-row">
-    <button class="primary" id="whatsappCartBtn" style="background:#2f8a4e;">Envoyer sur WhatsApp</button>
-    <button class="primary" id="snapCartBtn" style="background:#f2c200;color:#111;">Envoyer sur Snapchat</button>
     <button class="primary" id="shotCartBtn">Envoyer en capture</button>
-    <button class="primary" id="copyCartBtn">Copier la liste</button>
     <button class="small" id="clearCartBtn">Vider le panier</button>
   </div>
   <div class="status-msg" id="cartStatusMsg"></div>
@@ -1351,22 +1348,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   document.getElementById('closeCartPanel').addEventListener('click', function () {
     document.getElementById('cartPanel').classList.remove('open');
   });
-  document.getElementById('copyCartBtn').addEventListener('click', function () {
-    const text = buildCartText();
-    const msgEl = document.getElementById('cartStatusMsg');
-    if (!text) { msgEl.textContent = 'Ton panier est vide.'; return; }
-    navigator.clipboard.writeText(text).then(function () {
-      msgEl.textContent = 'Liste copiée ! Tu peux la coller où tu veux.';
-    }).catch(function () {
-      msgEl.textContent = 'Impossible de copier automatiquement, copie le texte manuellement.';
-    });
-  });
-  document.getElementById('whatsappCartBtn').addEventListener('click', function () {
-    const text = buildCartText();
-    const msgEl = document.getElementById('cartStatusMsg');
-    if (!text) { msgEl.textContent = 'Ton panier est vide.'; return; }
-    window.open(waUrl(text), '_blank');
-  });
   // === Moyens de paiement : renseigner les liens ici (laisser vide = bouton masqué) ===
   const PAYMENT_LINKS = { paypal: 'https://paypal.me/raihanaaik', revolut: 'https://revolut.me/raihanav111', card: '' };
   (function initPayment() {
@@ -1401,11 +1382,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if (cust.address) lines.push('Adresse : ' + cust.address);
     return lines.length ? 'Mes coordonnées pour la commande :\n' + lines.join('\n') : '';
   }
-  document.getElementById('snapCartBtn').addEventListener('click', function () {
-    const text = buildCartText(); const msgEl = document.getElementById('cartStatusMsg');
-    if (!text) { msgEl.textContent = 'Ton panier est vide.'; return; }
-    snapSend(text, msgEl);
-  });
   document.getElementById('custWhatsappBtn').addEventListener('click', function () {
     const text = buildCustomerText(); const msgEl = document.getElementById('cartStatusMsg');
     if (!text) { msgEl.textContent = 'Remplis au moins un champ.'; return; }
