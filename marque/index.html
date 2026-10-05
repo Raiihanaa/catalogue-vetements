@@ -255,6 +255,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .cust-grid input { width: 100%; box-sizing: border-box; }
   .cust-grid .cust-wide { grid-column: 1 / -1; }
   @media (max-width: 480px) { .cust-grid { grid-template-columns: 1fr; } }
+  .step-title { font-weight: 700; font-size: 14px; margin: 14px 0 4px; }
+  .step-section { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .step-section .step-title { margin-top: 0; }
+  .step-section .pay-section { border-top: none; margin-top: 16px; padding-top: 0; }
 </style>
 </head>
 <body>
@@ -309,30 +313,40 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <button class="close-panel" id="closeCartPanel">✕</button>
   <h2>Ma sélection</h2>
   <div id="cartItems" class="admin-section"></div>
-  <div class="cust-form" id="custForm">
-    <h3>Tes coordonnées</h3>
-    <div class="cust-grid">
-      <input type="text" id="custLast" placeholder="Nom" autocomplete="family-name">
-      <input type="text" id="custFirst" placeholder="Prénom" autocomplete="given-name">
-      <input type="text" id="custPhone" placeholder="Numéro de téléphone" autocomplete="tel" inputmode="tel">
-      <input type="text" id="custAddress" placeholder="Adresse de livraison (rue, code postal, ville, pays)" autocomplete="street-address" class="cust-wide">
-    </div>
-  </div>
+  <div class="step-title">Étape 1 — Demande les prix</div>
+  <p class="pay-note">Envoie ta sélection : on te répond avec les prix.</p>
   <div class="admin-row">
-    <button class="primary" id="copyCartBtn">Copier la liste</button>
     <button class="primary" id="whatsappCartBtn" style="background:#2f8a4e;">Envoyer sur WhatsApp</button>
+    <button class="primary" id="snapCartBtn" style="background:#f2c200;color:#111;">Envoyer sur Snapchat</button>
+    <button class="primary" id="copyCartBtn">Copier la liste</button>
     <button class="small" id="clearCartBtn">Vider le panier</button>
   </div>
   <div class="status-msg" id="cartStatusMsg"></div>
-  <div class="pay-section" id="paySection" style="display:none;">
-    <h3>Paiement</h3>
-    <p class="pay-note">1. Envoie ta commande sur WhatsApp. 2. On te confirme le total. 3. Paie avec le moyen de ton choix :</p>
-    <div class="admin-row">
-      <a class="pay-btn pay-paypal" id="payPaypal" target="_blank" rel="noopener" style="display:none;">PayPal</a>
-      <a class="pay-btn pay-revolut" id="payRevolut" target="_blank" rel="noopener" style="display:none;">Revolut</a>
-      <a class="pay-btn pay-card" id="payCard" target="_blank" rel="noopener" style="display:none;">Carte bancaire</a>
+  <div class="step-section">
+    <div class="step-title">Étape 2 — Une fois les prix reçus</div>
+    <div class="cust-form" id="custForm">
+      <h3>Tes coordonnées</h3>
+      <div class="cust-grid">
+        <input type="text" id="custLast" placeholder="Nom" autocomplete="family-name">
+        <input type="text" id="custFirst" placeholder="Prénom" autocomplete="given-name">
+        <input type="text" id="custPhone" placeholder="Numéro de téléphone" autocomplete="tel" inputmode="tel">
+        <input type="text" id="custAddress" placeholder="Adresse de livraison (rue, code postal, ville, pays)" autocomplete="street-address" class="cust-wide">
+      </div>
+      <div class="admin-row" style="margin-top:10px;">
+        <button class="primary" id="custWhatsappBtn" style="background:#2f8a4e;">Envoyer mes coordonnées (WhatsApp)</button>
+        <button class="primary" id="custSnapBtn" style="background:#f2c200;color:#111;">Envoyer mes coordonnées (Snapchat)</button>
+      </div>
     </div>
-    <p class="pay-note pay-small">La carte bancaire se règle via PayPal, sans besoin de compte PayPal.</p>
+    <div class="pay-section" id="paySection" style="display:none;">
+      <h3>Paiement</h3>
+      <p class="pay-note">Paie le montant confirmé avec le moyen de ton choix :</p>
+      <div class="admin-row">
+        <a class="pay-btn pay-paypal" id="payPaypal" target="_blank" rel="noopener" style="display:none;">PayPal</a>
+        <a class="pay-btn pay-revolut" id="payRevolut" target="_blank" rel="noopener" style="display:none;">Revolut</a>
+        <a class="pay-btn pay-card" id="payCard" target="_blank" rel="noopener" style="display:none;">Carte bancaire</a>
+      </div>
+      <p class="pay-note pay-small">La carte bancaire se règle via PayPal, sans besoin de compte PayPal.</p>
+    </div>
   </div>
 </div>
 
@@ -1013,12 +1027,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       const detail = getCartDetail(im.id);
       text += (i + 1) + '. ' + label + ' — Qté: ' + detail.qty + (detail.note ? ' — ' + detail.note : '') + '\n';
     });
-    const cust = getCustomer();
-    const lines = [];
-    if (cust.first || cust.last) lines.push('Nom : ' + [cust.first, cust.last].filter(Boolean).join(' '));
-    if (cust.phone) lines.push('Tél : ' + cust.phone);
-    if (cust.address) lines.push('Adresse : ' + cust.address);
-    if (lines.length) text += '\nMes coordonnées :\n' + lines.join('\n') + '\n';
     return text;
   }
   const CUST_FIELDS = { first: 'custFirst', last: 'custLast', phone: 'custPhone', address: 'custAddress' };
@@ -1356,7 +1364,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const text = buildCartText();
     const msgEl = document.getElementById('cartStatusMsg');
     if (!text) { msgEl.textContent = 'Ton panier est vide.'; return; }
-    window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+    window.open(waUrl(text), '_blank');
   });
   // === Moyens de paiement : renseigner les liens ici (laisser vide = bouton masqué) ===
   const PAYMENT_LINKS = { paypal: 'https://paypal.me/raihanaaik', revolut: 'https://revolut.me/raihanav111', card: '' };
@@ -1371,6 +1379,41 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     });
     if (any) document.getElementById('paySection').style.display = 'block';
   })();
+  // === Contact : renseigner le numéro WhatsApp (format international sans +, ex: 33612345678). Vide = le client choisit le contact ===
+  const WHATSAPP_NUMBER = '';
+  const SNAP_USER = 'Novachinaaa';
+  function waUrl(text) { return 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(text); }
+  function snapSend(text, msgEl) {
+    const open = function () { window.open('https://www.snapchat.com/add/' + SNAP_USER, '_blank'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        msgEl.textContent = 'Message copié ! Colle-le dans le chat Snapchat qui s\'ouvre.'; open();
+      }).catch(function () { msgEl.textContent = 'Copie le texte manuellement puis colle-le dans Snapchat.'; open(); });
+    } else { open(); }
+  }
+  function buildCustomerText() {
+    const cust = getCustomer();
+    const lines = [];
+    if (cust.first || cust.last) lines.push('Nom : ' + [cust.first, cust.last].filter(Boolean).join(' '));
+    if (cust.phone) lines.push('Tél : ' + cust.phone);
+    if (cust.address) lines.push('Adresse : ' + cust.address);
+    return lines.length ? 'Mes coordonnées pour la commande :\n' + lines.join('\n') : '';
+  }
+  document.getElementById('snapCartBtn').addEventListener('click', function () {
+    const text = buildCartText(); const msgEl = document.getElementById('cartStatusMsg');
+    if (!text) { msgEl.textContent = 'Ton panier est vide.'; return; }
+    snapSend(text, msgEl);
+  });
+  document.getElementById('custWhatsappBtn').addEventListener('click', function () {
+    const text = buildCustomerText(); const msgEl = document.getElementById('cartStatusMsg');
+    if (!text) { msgEl.textContent = 'Remplis au moins un champ.'; return; }
+    window.open(waUrl(text), '_blank');
+  });
+  document.getElementById('custSnapBtn').addEventListener('click', function () {
+    const text = buildCustomerText(); const msgEl = document.getElementById('cartStatusMsg');
+    if (!text) { msgEl.textContent = 'Remplis au moins un champ.'; return; }
+    snapSend(text, msgEl);
+  });
   document.getElementById('clearCartBtn').addEventListener('click', function () {
     if (!confirm('Vider le panier ?')) return;
     CART.clear();
