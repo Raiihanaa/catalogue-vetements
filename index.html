@@ -11,9 +11,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Big H Shop</title>
+<meta name="theme-color" content="#0f0e0c">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Jost:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #faf8f5;
@@ -231,6 +232,80 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .step-section { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
   .step-section .step-title { margin-top: 0; }
   .step-section .pay-section { border-top: none; margin-top: 16px; padding-top: 0; }
+  /* ===== Big H Shop : luxe sombre ===== */
+  :root {
+    --bg: #0f0e0c;
+    --surface: #1a1814;
+    --text: #efe8da;
+    --text-muted: #a0968a;
+    --border: #2d2922;
+    --accent: #c9a45c;
+    --accent-hover: #ddb96f;
+    --chip-bg: #221f19;
+    --chip-active-bg: #c9a45c;
+    --chip-active-text: #14110c;
+    --chip2-bg: #1f1c17;
+    --chip2-active-bg: #34301f;
+    --danger: #e0766d;
+    --shadow: none;
+    --shadow-hover: 0 14px 34px rgba(0, 0, 0, 0.55);
+  }
+  body { font-family: "Jost", "Inter", -apple-system, "Segoe UI", Arial, sans-serif; letter-spacing: 0.01em; }
+  header { background: rgba(15, 14, 12, 0.94); padding: 22px 24px 10px; }
+  header h1 {
+    font-family: "Cormorant Garamond", Georgia, serif; font-weight: 600;
+    font-size: clamp(38px, 7vw, 58px); letter-spacing: 0.06em; line-height: 1; margin: 0 0 12px;
+    color: var(--text);
+  }
+  header h1::after {
+    content: ""; display: block; width: 64px; height: 1px; margin: 12px auto 0;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+  .snap-wrap { margin-bottom: 18px; }
+  .snap-link {
+    background: transparent; color: var(--accent); border: 1px solid rgba(201, 164, 92, 0.5);
+    font-family: "Jost", sans-serif; font-weight: 500; letter-spacing: 0.04em;
+    transition: background 0.2s, color 0.2s;
+  }
+  .snap-link:hover { background: var(--accent); color: #14110c; }
+  .search-input {
+    margin-left: auto; margin-right: auto; background: var(--surface); border-color: var(--border);
+    color: var(--text); font-family: inherit;
+  }
+  .search-input::placeholder { color: var(--text-muted); }
+  .tabs { justify-content: flex-start; }
+  .tabs > :first-child { margin-left: auto; }
+  .tabs > :last-child { margin-right: auto; }
+  .tab {
+    text-transform: none; letter-spacing: 0.03em; font-size: 15px; font-weight: 500;
+    font-family: "Cormorant Garamond", Georgia, serif; font-size: 18px;
+  }
+  .tab.sub { font-family: "Jost", sans-serif; font-size: 13px; letter-spacing: 0.02em; }
+  .tab.sub.active { border-bottom-color: var(--accent); }
+  .card { border-radius: 4px; border-color: var(--border); background: var(--surface); }
+  .card:hover { transform: translateY(-4px); border-color: rgba(201, 164, 92, 0.55); }
+  .card .meta { color: var(--text-muted); font-size: 12.5px; padding: 11px 12px; }
+  .card .cart-btn {
+    background: transparent; color: var(--accent); border-top: 1px solid var(--border);
+    font-family: "Jost", sans-serif; font-size: 12.5px; font-weight: 500; letter-spacing: 0.05em; padding: 10px 0;
+  }
+  .card .cart-btn:hover { background: rgba(201, 164, 92, 0.12); }
+  .card .cart-btn.active { background: var(--accent); color: #14110c; }
+  .card .heart { background: rgba(15, 14, 12, 0.6); color: var(--accent); }
+  .card .heart.active { background: var(--accent); color: #14110c; }
+  .card .imgwrap { background: #14120f; }
+  .cart-toggle { background: var(--accent); color: #14110c; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5); font-family: "Jost", sans-serif; font-weight: 600; }
+  .admin-panel { background: var(--surface); border-top: 1px solid rgba(201, 164, 92, 0.35); color: var(--text); }
+  .admin-panel h2 { font-family: "Cormorant Garamond", Georgia, serif; font-size: 22px; font-weight: 600; }
+  .admin-panel button.primary { color: #14110c; }
+  .admin-panel input[type="text"], .admin-panel select, .admin-panel textarea { background: #12100d; color: var(--text); border-color: var(--border); }
+  .admin-panel input::placeholder { color: var(--text-muted); }
+  .admin-panel button.small { background: var(--chip-bg); color: var(--text); }
+  .cart-item img { background: var(--chip-bg); }
+  .step-section { border-top-color: var(--border); }
+  .lightbox { background: rgba(8, 7, 6, 0.95); }
+  .empty { color: var(--text-muted); }
+  .snap-link:focus-visible, .tab:focus-visible, .card .cart-btn:focus-visible, .cart-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 </style>
 </head>
 <body>
