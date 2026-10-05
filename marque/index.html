@@ -316,12 +316,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <h2>Ma sélection</h2>
   <div id="cartItems" class="admin-section"></div>
   <div class="step-title">Étape 1 — Demande les prix</div>
-  <p class="pay-note">Tu choisis Snapchat ou WhatsApp, et on te répond avec les prix.</p>
+  <p class="pay-note">Clique sur le bouton ci-dessous, puis choisis Snapchat ou WhatsApp : on te répond avec les prix.</p>
   <div class="admin-row">
-    <button class="primary" id="shotCartBtn">Envoyer ma sélection sur :</button>
+    <button class="primary" id="shotCartBtn">Envoyer ma sélection</button>
     <button class="small" id="clearCartBtn">Vider le panier</button>
   </div>
-  <div class="contact-row"></div>
   <div class="status-msg" id="cartStatusMsg"></div>
   <div class="step-section">
     <div class="step-title">Étape 2 — Une fois les prix reçus</div>
@@ -334,9 +333,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <input type="text" id="custAddress" placeholder="Adresse de livraison (rue, code postal, ville, pays)" autocomplete="street-address" class="cust-wide">
       </div>
       <div class="admin-row" style="margin-top:10px;">
-        <button class="primary" id="custSendBtn">Envoyer mes coordonnées sur :</button>
+        <p class="pay-note">Clique sur le bouton ci-dessous, puis choisis Snapchat ou WhatsApp.</p>
+        <button class="primary" id="custSendBtn">Envoyer mes coordonnées</button>
       </div>
-      <div class="contact-row"></div>
       <div class="status-msg" id="custStatusMsg"></div>
     </div>
     <div class="pay-section" id="paySection" style="display:none;">
@@ -1381,7 +1380,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       sn.textContent = 'Snapchat ' + SNAP_USER; row.appendChild(sn);
     });
   }
-  fillContactLinks();
+  // contact links removed
   // === Coordonnées envoyées en texte via le menu de partage (le client choisit WhatsApp ou Snapchat) ===
   function buildCustomerText() {
     const cust = getCustomer();
