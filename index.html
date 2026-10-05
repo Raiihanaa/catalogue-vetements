@@ -379,6 +379,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <button class="primary" id="custWhatsappBtn" style="background:#2f8a4e;">Envoyer mes coordonnées (WhatsApp)</button>
         <button class="primary" id="custSnapBtn" style="background:#f2c200;color:#111;">Envoyer mes coordonnées (Snapchat)</button>
       </div>
+      <div class="status-msg" id="custStatusMsg"></div>
     </div>
     <div class="pay-section" id="paySection" style="display:none;">
       <h3>Paiement</h3>
@@ -1419,14 +1420,28 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   const WHATSAPP_NUMBER = '';
   const SNAP_USER = 'achraf_elg';
   function waUrl(text) { return 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(text); }
+  function copyNow(text) {
+    // Copie synchrone (fiable sur iPhone/Android), puis API moderne en complément
+    let ok = false;
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;font-size:16px;';
+      document.body.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
+      ok = document.execCommand('copy'); ta.remove();
+    } catch (e) { ok = false; }
+    try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () {}, function () {}); } catch (e) {}
+    return ok;
+  }
   function snapSend(text, msgEl) {
-    // Copie lancée et ouverture faites dans le même clic (sinon le navigateur du téléphone bloque l'ouverture)
-    let copied = null;
-    try { if (navigator.clipboard && navigator.clipboard.writeText) copied = navigator.clipboard.writeText(text); } catch (e) { copied = null; }
-    msgEl.textContent = 'Message copié : colle-le dans le chat Snapchat.';
-    if (copied && copied.catch) copied.catch(function () { msgEl.textContent = 'Copie impossible : utilise « Copier la liste », puis colle dans Snapchat.'; });
-    else if (!copied) msgEl.textContent = 'Copie impossible : utilise « Copier la liste », puis colle dans Snapchat.';
-    window.location.href = 'https://www.snapchat.com/add/' + SNAP_USER;
+    copyNow(text);
+    msgEl.innerHTML = '';
+    const info = document.createElement('div');
+    info.textContent = '✓ Copié. Ouvre Snapchat, puis colle le message dans la discussion.';
+    const link = document.createElement('a');
+    link.href = 'https://www.snapchat.com/add/' + SNAP_USER; link.target = '_blank'; link.rel = 'noopener';
+    link.className = 'pay-btn'; link.style.cssText = 'background:#f2c200;color:#111;margin-top:8px;';
+    link.textContent = 'Ouvrir Snapchat';
+    msgEl.appendChild(info); msgEl.appendChild(link);
   }
   function buildCustomerText() {
     const cust = getCustomer();
@@ -1437,12 +1452,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return lines.length ? 'Mes coordonnées pour la commande :\n' + lines.join('\n') : '';
   }
   document.getElementById('custWhatsappBtn').addEventListener('click', function () {
-    const text = buildCustomerText(); const msgEl = document.getElementById('cartStatusMsg');
+    const text = buildCustomerText(); const msgEl = document.getElementById('custStatusMsg');
     if (!text) { msgEl.textContent = 'Remplis au moins un champ.'; return; }
     window.open(waUrl(text), '_blank');
   });
   document.getElementById('custSnapBtn').addEventListener('click', function () {
-    const text = buildCustomerText(); const msgEl = document.getElementById('cartStatusMsg');
+    const text = buildCustomerText(); const msgEl = document.getElementById('custStatusMsg');
     if (!text) { msgEl.textContent = 'Remplis au moins un champ.'; return; }
     snapSend(text, msgEl);
   });
