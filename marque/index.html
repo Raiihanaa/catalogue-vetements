@@ -1385,12 +1385,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   const SNAP_USER = 'Novachinaaa';
   function waUrl(text) { return 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(text); }
   function snapSend(text, msgEl) {
-    const open = function () { window.open('https://www.snapchat.com/add/' + SNAP_USER, '_blank'); };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () {
-        msgEl.textContent = 'Message copié ! Colle-le dans le chat Snapchat qui s\'ouvre.'; open();
-      }).catch(function () { msgEl.textContent = 'Copie le texte manuellement puis colle-le dans Snapchat.'; open(); });
-    } else { open(); }
+    // Copie lancée et ouverture faites dans le même clic (sinon le navigateur du téléphone bloque l'ouverture)
+    let copied = null;
+    try { if (navigator.clipboard && navigator.clipboard.writeText) copied = navigator.clipboard.writeText(text); } catch (e) { copied = null; }
+    msgEl.textContent = 'Message copié : colle-le dans le chat Snapchat.';
+    if (copied && copied.catch) copied.catch(function () { msgEl.textContent = 'Copie impossible : utilise « Copier la liste », puis colle dans Snapchat.'; });
+    else if (!copied) msgEl.textContent = 'Copie impossible : utilise « Copier la liste », puis colle dans Snapchat.';
+    window.location.href = 'https://www.snapchat.com/add/' + SNAP_USER;
   }
   function buildCustomerText() {
     const cust = getCustomer();
@@ -1474,17 +1475,32 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     ctx.fillText(new Date().toLocaleDateString('fr-FR'), W / 2, H - 26);
     return new Promise(function (resolve) { c.toBlob(resolve, 'image/png'); });
   }
+  // Capture préparée à l'avance : le menu de partage du téléphone exige une réponse immédiate au clic
+  let shotPromise = null, shotTimer = null;
+  function scheduleShot() {
+    shotPromise = null; clearTimeout(shotTimer);
+    shotTimer = setTimeout(function () { shotPromise = buildCartImage().catch(function () { return null; }); }, 400);
+  }
+  new MutationObserver(scheduleShot).observe(document.getElementById('cartItems'), { childList: true, subtree: true });
+  document.getElementById('cartToggle').addEventListener('click', scheduleShot);
   document.getElementById('shotCartBtn').addEventListener('click', async function () {
     const msgEl = document.getElementById('cartStatusMsg');
     msgEl.textContent = 'Création de la capture…';
     try {
-      const blob = await buildCartImage();
+      const blob = await (shotPromise || buildCartImage());
       if (!blob) { msgEl.textContent = 'Ton panier est vide.'; return; }
       const file = new File([blob], 'ma-selection.png', { type: 'image/png' });
+      let shared = false;
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: CATALOG.title || 'Ma sélection' });
-        msgEl.textContent = 'Capture prête : choisis WhatsApp ou Snapchat pour l\'envoyer.';
-      } else {
+        try {
+          await navigator.share({ files: [file], title: CATALOG.title || 'Ma sélection' });
+          msgEl.textContent = 'Capture prête : choisis WhatsApp ou Snapchat pour l\'envoyer.';
+          shared = true;
+        } catch (err) {
+          if (err && err.name === 'AbortError') { msgEl.textContent = ''; return; }
+        }
+      }
+      if (!shared) {
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'ma-selection.png';
         document.body.appendChild(a); a.click(); a.remove();
         msgEl.textContent = 'Capture enregistrée dans tes téléchargements : joins-la à ta conversation WhatsApp ou Snapchat.';
