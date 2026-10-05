@@ -221,6 +221,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pay-paypal { background: #0070ba; }
   .pay-revolut { background: #191c1f; }
   .pay-card { background: #5b4b8a; }
+  .cust-form { margin: 14px 0 10px; }
+  .cust-form h3 { margin: 0 0 8px; font-size: 15px; }
+  .cust-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .cust-grid input { width: 100%; box-sizing: border-box; }
+  .cust-grid .cust-wide { grid-column: 1 / -1; }
+  @media (max-width: 480px) { .cust-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -271,6 +277,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <button class="close-panel" id="closeCartPanel">✕</button>
   <h2>Ma sélection</h2>
   <div id="cartItems" class="admin-section"></div>
+  <div class="cust-form" id="custForm">
+    <h3>Tes coordonnées</h3>
+    <div class="cust-grid">
+      <input type="text" id="custLast" placeholder="Nom" autocomplete="family-name">
+      <input type="text" id="custFirst" placeholder="Prénom" autocomplete="given-name">
+      <input type="text" id="custPhone" placeholder="Numéro de téléphone" autocomplete="tel" inputmode="tel">
+      <input type="text" id="custAddress" placeholder="Adresse de livraison (rue, code postal, ville, pays)" autocomplete="street-address" class="cust-wide">
+    </div>
+  </div>
   <div class="admin-row">
     <button class="primary" id="copyCartBtn">Copier la liste</button>
     <button class="primary" id="whatsappCartBtn" style="background:#2f8a4e;">Envoyer sur WhatsApp</button>
@@ -966,8 +981,35 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       const detail = getCartDetail(im.id);
       text += (i + 1) + '. ' + label + ' — Qté: ' + detail.qty + (detail.note ? ' — ' + detail.note : '') + '\n';
     });
+    const cust = getCustomer();
+    const lines = [];
+    if (cust.first || cust.last) lines.push('Nom : ' + [cust.first, cust.last].filter(Boolean).join(' '));
+    if (cust.phone) lines.push('Tél : ' + cust.phone);
+    if (cust.address) lines.push('Adresse : ' + cust.address);
+    if (lines.length) text += '\nMes coordonnées :\n' + lines.join('\n') + '\n';
     return text;
   }
+  const CUST_FIELDS = { first: 'custFirst', last: 'custLast', phone: 'custPhone', address: 'custAddress' };
+  function getCustomer() {
+    const c = {};
+    Object.keys(CUST_FIELDS).forEach(function (k) {
+      const el = document.getElementById(CUST_FIELDS[k]);
+      c[k] = el ? el.value.trim() : '';
+    });
+    return c;
+  }
+  (function initCustomer() {
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem('catalog_customer') || '{}'); } catch (e) {}
+    Object.keys(CUST_FIELDS).forEach(function (k) {
+      const el = document.getElementById(CUST_FIELDS[k]);
+      if (!el) return;
+      el.value = saved[k] || '';
+      el.addEventListener('input', function () {
+        try { localStorage.setItem('catalog_customer', JSON.stringify(getCustomer())); } catch (e) {}
+      });
+    });
+  })();
 
   function openLightbox(url) {
     document.getElementById('lightboxImg').src = url;
