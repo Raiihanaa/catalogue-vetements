@@ -1317,7 +1317,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
   });
   // === Moyens de paiement : renseigner les liens ici (laisser vide = bouton masqué) ===
-  const PAYMENT_LINKS = { paypal: '', revolut: '', card: '' };
+  const PAYMENT_LINKS = { paypal: 'https://paypal.me/raihanaaik', revolut: 'https://revolut.me/raihanav111', card: '' };
   (function initPayment() {
     const map = { paypal: 'payPaypal', revolut: 'payRevolut', card: 'payCard' };
     const cardLink = PAYMENT_LINKS.card || PAYMENT_LINKS.paypal;
