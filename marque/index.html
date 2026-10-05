@@ -241,6 +241,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     font-size: 12px; padding: 9px 16px; text-align: center; z-index: 200;
   }
   .download-banner.show { display: block; }
+  .pay-section { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .pay-section h3 { margin: 0 0 6px; font-size: 15px; }
+  .pay-note { font-size: 12.5px; color: var(--text-muted); margin: 0 0 10px; }
+  .pay-small { font-size: 11.5px; margin: 8px 0 0; }
+  .pay-btn { display: inline-block; padding: 10px 16px; border-radius: 10px; color: #fff; font-size: 13.5px; font-weight: 600; text-decoration: none; cursor: pointer; }
+  .pay-paypal { background: #0070ba; }
+  .pay-revolut { background: #191c1f; }
+  .pay-card { background: #5b4b8a; }
 </style>
 </head>
 <body>
@@ -301,6 +309,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <button class="small" id="clearCartBtn">Vider le panier</button>
   </div>
   <div class="status-msg" id="cartStatusMsg"></div>
+  <div class="pay-section" id="paySection" style="display:none;">
+    <h3>Paiement</h3>
+    <p class="pay-note">1. Envoie ta commande sur WhatsApp. 2. On te confirme le total. 3. Paie avec le moyen de ton choix :</p>
+    <div class="admin-row">
+      <a class="pay-btn pay-paypal" id="payPaypal" target="_blank" rel="noopener" style="display:none;">PayPal</a>
+      <a class="pay-btn pay-revolut" id="payRevolut" target="_blank" rel="noopener" style="display:none;">Revolut</a>
+      <a class="pay-btn pay-card" id="payCard" target="_blank" rel="noopener" style="display:none;">Carte bancaire</a>
+    </div>
+    <p class="pay-note pay-small">La carte bancaire se règle via PayPal, sans besoin de compte PayPal.</p>
+  </div>
 </div>
 
 <div class="admin-panel" id="adminPanel">
@@ -1298,6 +1316,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if (!text) { msgEl.textContent = 'Ton panier est vide.'; return; }
     window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
   });
+  // === Moyens de paiement : renseigner les liens ici (laisser vide = bouton masqué) ===
+  const PAYMENT_LINKS = { paypal: '', revolut: '', card: '' };
+  (function initPayment() {
+    const map = { paypal: 'payPaypal', revolut: 'payRevolut', card: 'payCard' };
+    const cardLink = PAYMENT_LINKS.card || PAYMENT_LINKS.paypal;
+    let any = false;
+    Object.keys(map).forEach(function (k) {
+      const url = k === 'card' ? cardLink : PAYMENT_LINKS[k];
+      const el = document.getElementById(map[k]);
+      if (url && el) { el.href = url; el.style.display = 'inline-block'; any = true; }
+    });
+    if (any) document.getElementById('paySection').style.display = 'block';
+  })();
   document.getElementById('clearCartBtn').addEventListener('click', function () {
     if (!confirm('Vider le panier ?')) return;
     CART.clear();
