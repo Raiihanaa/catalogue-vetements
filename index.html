@@ -306,6 +306,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .lightbox { background: rgba(8, 7, 6, 0.95); }
   .empty { color: var(--text-muted); }
   .snap-link:focus-visible, .tab:focus-visible, .card .cart-btn:focus-visible, .cart-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .pay-off { opacity: 0.45; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -1418,7 +1419,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     Object.keys(map).forEach(function (k) {
       const url = k === 'card' ? cardLink : PAYMENT_LINKS[k];
       const el = document.getElementById(map[k]);
-      if (url && el) { el.href = url; el.style.display = 'inline-block'; any = true; }
+      if (!el) return;
+      el.style.display = 'inline-block';
+      if (url) { el.href = url; }
+      else {
+        // Lien pas encore renseigné : bouton visible mais inactif
+        el.classList.add('pay-off');
+        el.title = 'Bientôt disponible';
+        el.addEventListener('click', function (e) { e.preventDefault(); });
+      }
+      any = true;
     });
     if (any) document.getElementById('paySection').style.display = 'block';
   })();
