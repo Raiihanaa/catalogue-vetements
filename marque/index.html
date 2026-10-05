@@ -1375,19 +1375,33 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       document.body.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
       ok = document.execCommand('copy'); ta.remove();
     } catch (e) { ok = false; }
-    try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () {}, function () {}); } catch (e) {}
     return ok;
   }
   function snapSend(text, msgEl) {
-    copyNow(text);
+    const okSync = copyNow(text);
     msgEl.innerHTML = '';
     const info = document.createElement('div');
-    info.textContent = '✓ Copié. Ouvre Snapchat, puis colle le message dans la discussion.';
-    const link = document.createElement('a');
-    link.href = 'https://www.snapchat.com/add/' + SNAP_USER; link.target = '_blank'; link.rel = 'noopener';
-    link.className = 'pay-btn'; link.style.cssText = 'background:#f2c200;color:#111;margin-top:8px;';
-    link.textContent = 'Ouvrir Snapchat';
-    msgEl.appendChild(info); msgEl.appendChild(link);
+    msgEl.appendChild(info);
+    const showLink = function () {
+      const link = document.createElement('a');
+      link.href = 'https://www.snapchat.com/add/' + SNAP_USER; link.target = '_blank'; link.rel = 'noopener';
+      link.className = 'pay-btn'; link.style.cssText = 'background:#f2c200;color:#111;margin-top:8px;';
+      link.textContent = 'Ouvrir Snapchat';
+      msgEl.appendChild(link);
+    };
+    const showManual = function () {
+      info.textContent = 'La copie automatique n\'a pas marché. Appuie longuement sur le texte ci-dessous, choisis « Copier », puis ouvre Snapchat et colle-le.';
+      const box = document.createElement('textarea');
+      box.readOnly = true; box.value = text; box.rows = 5; box.style.cssText = 'width:100%;margin-top:8px;font-size:16px;';
+      box.addEventListener('focus', function () { box.select(); });
+      msgEl.appendChild(box); showLink();
+    };
+    if (okSync) { info.textContent = '✓ Copié. Ouvre Snapchat, puis colle le message dans la discussion.'; showLink(); return; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        info.textContent = '✓ Copié. Ouvre Snapchat, puis colle le message dans la discussion.'; showLink();
+      }, showManual);
+    } else { showManual(); }
   }
   function buildCustomerText() {
     const cust = getCustomer();
