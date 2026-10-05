@@ -259,6 +259,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .step-section { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
   .step-section .step-title { margin-top: 0; }
   .step-section .pay-section { border-top: none; margin-top: 16px; padding-top: 0; }
+  .contact-row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 12.5px; color: var(--text-muted); margin-top: 8px; }
+  .contact-row a { color: var(--accent); text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -319,6 +321,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <button class="primary" id="shotCartBtn">Envoyer ma sélection sur :</button>
     <button class="small" id="clearCartBtn">Vider le panier</button>
   </div>
+  <div class="contact-row"></div>
   <div class="status-msg" id="cartStatusMsg"></div>
   <div class="step-section">
     <div class="step-title">Étape 2 — Une fois les prix reçus</div>
@@ -331,9 +334,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <input type="text" id="custAddress" placeholder="Adresse de livraison (rue, code postal, ville, pays)" autocomplete="street-address" class="cust-wide">
       </div>
       <div class="admin-row" style="margin-top:10px;">
-        <button class="primary" id="custWhatsappBtn" style="background:#2f8a4e;">Envoyer mes coordonnées (WhatsApp)</button>
-        <button class="primary" id="custSnapBtn" style="background:#f2c200;color:#111;">Envoyer mes coordonnées (Snapchat)</button>
+        <button class="primary" id="custSendBtn">Envoyer mes coordonnées sur :</button>
       </div>
+      <div class="contact-row"></div>
       <div class="status-msg" id="custStatusMsg"></div>
     </div>
     <div class="pay-section" id="paySection" style="display:none;">
@@ -1365,61 +1368,72 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // === Contact : renseigner le numéro WhatsApp (format international sans +, ex: 33612345678). Vide = le client choisit le contact ===
   const WHATSAPP_NUMBER = '33782216309';
   const SNAP_USER = 'Novachinaaa';
-  function waUrl(text) { return 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(text); }
-  function copyNow(text) {
-    // Copie synchrone (fiable sur iPhone/Android), puis API moderne en complément
-    let ok = false;
-    try {
-      const ta = document.createElement('textarea');
-      ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;font-size:16px;';
-      document.body.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
-      ok = document.execCommand('copy'); ta.remove();
-    } catch (e) { ok = false; }
-    return ok;
+  // === Contact du vendeur (le client choisit l'appli dans le menu de partage, ces liens servent de raccourci) ===
+  function fillContactLinks() {
+    document.querySelectorAll('.contact-row').forEach(function (row) {
+      row.innerHTML = '';
+      const lab = document.createElement('span'); lab.textContent = 'Envoyer à :'; row.appendChild(lab);
+      if (WHATSAPP_NUMBER) {
+        const wa = document.createElement('a'); wa.href = 'https://wa.me/' + WHATSAPP_NUMBER; wa.target = '_blank'; wa.rel = 'noopener';
+        wa.textContent = 'WhatsApp +' + WHATSAPP_NUMBER.replace(/^(\d{2})(\d)(\d{2})(\d{2})(\d{2})(\d{2})$/, '$1 $2 $3 $4 $5 $6'); row.appendChild(wa);
+      }
+      const sn = document.createElement('a'); sn.href = 'https://www.snapchat.com/add/' + SNAP_USER; sn.target = '_blank'; sn.rel = 'noopener';
+      sn.textContent = 'Snapchat ' + SNAP_USER; row.appendChild(sn);
+    });
   }
-  function snapSend(text, msgEl) {
-    const okSync = copyNow(text);
-    msgEl.innerHTML = '';
-    const info = document.createElement('div');
-    msgEl.appendChild(info);
-    const showLink = function () {
-      const link = document.createElement('a');
-      link.href = 'https://www.snapchat.com/add/' + SNAP_USER; link.target = '_blank'; link.rel = 'noopener';
-      link.className = 'pay-btn'; link.style.cssText = 'background:#f2c200;color:#111;margin-top:8px;';
-      link.textContent = 'Ouvrir Snapchat';
-      msgEl.appendChild(link);
-    };
-    const showManual = function () {
-      info.textContent = 'La copie automatique n\'a pas marché. Appuie longuement sur le texte ci-dessous, choisis « Copier », puis ouvre Snapchat et colle-le.';
-      const box = document.createElement('textarea');
-      box.readOnly = true; box.value = text; box.rows = 5; box.style.cssText = 'width:100%;margin-top:8px;font-size:16px;';
-      box.addEventListener('focus', function () { box.select(); });
-      msgEl.appendChild(box); showLink();
-    };
-    if (okSync) { info.textContent = '✓ Copié. Ouvre Snapchat, puis colle le message dans la discussion.'; showLink(); return; }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () {
-        info.textContent = '✓ Copié. Ouvre Snapchat, puis colle le message dans la discussion.'; showLink();
-      }, showManual);
-    } else { showManual(); }
-  }
-  function buildCustomerText() {
+  fillContactLinks();
+  // === Coordonnées en image (même principe que la sélection) ===
+  async function buildCoordsBlob() {
     const cust = getCustomer();
-    const lines = [];
-    if (cust.first || cust.last) lines.push('Nom : ' + [cust.first, cust.last].filter(Boolean).join(' '));
-    if (cust.phone) lines.push('Tél : ' + cust.phone);
-    if (cust.address) lines.push('Adresse : ' + cust.address);
-    return lines.length ? 'Mes coordonnées pour la commande :\n' + lines.join('\n') : '';
+    const rows = [];
+    const full = [cust.first, cust.last].filter(Boolean).join(' ');
+    if (full) rows.push(['Nom', full]);
+    if (cust.phone) rows.push(['Téléphone', cust.phone]);
+    if (cust.address) rows.push(['Adresse', cust.address]);
+    if (!rows.length) return null;
+    const cs = getComputedStyle(document.documentElement);
+    const col = function (v, d) { return (cs.getPropertyValue(v) || '').trim() || d; };
+    const bg = getComputedStyle(document.body).backgroundColor;
+    const text = col('--text', '#222'), muted = col('--text-muted', '#888'), accent = col('--accent', '#a8552b'), border = col('--border', '#ddd');
+    const W = 900, PAD = 50;
+    const meas = document.createElement('canvas').getContext('2d'); meas.font = '500 28px "Jost", Arial, sans-serif';
+    const laid = rows.map(function (r) { return [r[0], wrapLines(meas, r[1], W - PAD * 2, 4)]; });
+    let H = 150; laid.forEach(function (r) { H += 40 + r[1].length * 38 + 30; }); H += 60;
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center'; ctx.fillStyle = text;
+    ctx.font = '600 44px "Cormorant Garamond", Georgia, serif'; ctx.fillText(CATALOG.title || 'Commande', W / 2, 62);
+    ctx.fillStyle = muted; ctx.font = '500 20px "Jost", Arial, sans-serif'; ctx.fillText('Mes coordonnées pour la commande', W / 2, 98);
+    ctx.textAlign = 'left';
+    let y = 150;
+    laid.forEach(function (r) {
+      ctx.strokeStyle = border; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(PAD, y - 24); ctx.lineTo(W - PAD, y - 24); ctx.stroke();
+      ctx.fillStyle = accent; ctx.font = '600 20px "Jost", Arial, sans-serif'; ctx.fillText(r[0], PAD, y + 8);
+      ctx.fillStyle = text; ctx.font = '500 28px "Jost", Arial, sans-serif';
+      r[1].forEach(function (ln, k) { ctx.fillText(ln, PAD, y + 46 + k * 38); });
+      y += 40 + r[1].length * 38 + 30;
+    });
+    return new Promise(function (resolve) { c.toBlob(resolve, 'image/jpeg', 0.92); });
   }
-  document.getElementById('custWhatsappBtn').addEventListener('click', function () {
-    const text = buildCustomerText(); const msgEl = document.getElementById('custStatusMsg');
-    if (!text) { msgEl.textContent = 'Remplis au moins un champ.'; return; }
-    window.open(waUrl(text), '_blank');
-  });
-  document.getElementById('custSnapBtn').addEventListener('click', function () {
-    const text = buildCustomerText(); const msgEl = document.getElementById('custStatusMsg');
-    if (!text) { msgEl.textContent = 'Remplis au moins un champ.'; return; }
-    snapSend(text, msgEl);
+  document.getElementById('custSendBtn').addEventListener('click', async function () {
+    const msgEl = document.getElementById('custStatusMsg');
+    msgEl.textContent = 'Création de l\'image…';
+    try {
+      const blob = await buildCoordsBlob();
+      if (!blob) { msgEl.textContent = 'Remplis au moins un champ.'; return; }
+      const file = new File([blob], 'mes-coordonnees.jpg', { type: 'image/jpeg' });
+      let shared = false;
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file] }); msgEl.textContent = ''; shared = true; }
+        catch (err) { if (err && err.name === 'AbortError') { msgEl.textContent = ''; return; } }
+      }
+      if (!shared) {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name;
+        document.body.appendChild(a); a.click(); a.remove();
+        msgEl.textContent = 'Image enregistrée dans tes téléchargements : joins-la à ta conversation WhatsApp ou Snapchat.';
+      }
+    } catch (e) { console.error(e); msgEl.textContent = 'Impossible de créer l\'image. Réessaie.'; }
   });
   // === Capture d'écran de la sélection (image PNG à partager) ===
   function wrapLines(ctx, text, maxW, maxLines) {
