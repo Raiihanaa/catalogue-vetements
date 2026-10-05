@@ -1436,58 +1436,25 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     });
   }
   fillContactLinks();
-  // === Coordonnées en image (même principe que la sélection) ===
-  async function buildCoordsBlob() {
+  // === Coordonnées envoyées en texte via le menu de partage (le client choisit WhatsApp ou Snapchat) ===
+  function buildCustomerText() {
     const cust = getCustomer();
-    const rows = [];
-    const full = [cust.first, cust.last].filter(Boolean).join(' ');
-    if (full) rows.push(['Nom', full]);
-    if (cust.phone) rows.push(['Téléphone', cust.phone]);
-    if (cust.address) rows.push(['Adresse', cust.address]);
-    if (!rows.length) return null;
-    const cs = getComputedStyle(document.documentElement);
-    const col = function (v, d) { return (cs.getPropertyValue(v) || '').trim() || d; };
-    const bg = getComputedStyle(document.body).backgroundColor;
-    const text = col('--text', '#222'), muted = col('--text-muted', '#888'), accent = col('--accent', '#a8552b'), border = col('--border', '#ddd');
-    const W = 900, PAD = 50;
-    const meas = document.createElement('canvas').getContext('2d'); meas.font = '500 28px "Jost", Arial, sans-serif';
-    const laid = rows.map(function (r) { return [r[0], wrapLines(meas, r[1], W - PAD * 2, 4)]; });
-    let H = 150; laid.forEach(function (r) { H += 40 + r[1].length * 38 + 30; }); H += 60;
-    const c = document.createElement('canvas'); c.width = W; c.height = H;
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
-    ctx.textAlign = 'center'; ctx.fillStyle = text;
-    ctx.font = '600 44px "Cormorant Garamond", Georgia, serif'; ctx.fillText(CATALOG.title || 'Commande', W / 2, 62);
-    ctx.fillStyle = muted; ctx.font = '500 20px "Jost", Arial, sans-serif'; ctx.fillText('Mes coordonnées pour la commande', W / 2, 98);
-    ctx.textAlign = 'left';
-    let y = 150;
-    laid.forEach(function (r) {
-      ctx.strokeStyle = border; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(PAD, y - 24); ctx.lineTo(W - PAD, y - 24); ctx.stroke();
-      ctx.fillStyle = accent; ctx.font = '600 20px "Jost", Arial, sans-serif'; ctx.fillText(r[0], PAD, y + 8);
-      ctx.fillStyle = text; ctx.font = '500 28px "Jost", Arial, sans-serif';
-      r[1].forEach(function (ln, k) { ctx.fillText(ln, PAD, y + 46 + k * 38); });
-      y += 40 + r[1].length * 38 + 30;
-    });
-    return new Promise(function (resolve) { c.toBlob(resolve, 'image/jpeg', 0.92); });
+    const lines = [];
+    if (cust.first || cust.last) lines.push('Nom : ' + [cust.first, cust.last].filter(Boolean).join(' '));
+    if (cust.phone) lines.push('Tél : ' + cust.phone);
+    if (cust.address) lines.push('Adresse : ' + cust.address);
+    return lines.length ? 'Mes coordonnées pour la commande :\n' + lines.join('\n') : '';
   }
   document.getElementById('custSendBtn').addEventListener('click', async function () {
     const msgEl = document.getElementById('custStatusMsg');
-    msgEl.textContent = 'Création de l\'image…';
-    try {
-      const blob = await buildCoordsBlob();
-      if (!blob) { msgEl.textContent = 'Remplis au moins un champ.'; return; }
-      const file = new File([blob], 'mes-coordonnees.jpg', { type: 'image/jpeg' });
-      let shared = false;
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try { await navigator.share({ files: [file] }); msgEl.textContent = ''; shared = true; }
-        catch (err) { if (err && err.name === 'AbortError') { msgEl.textContent = ''; return; } }
-      }
-      if (!shared) {
-        const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name;
-        document.body.appendChild(a); a.click(); a.remove();
-        msgEl.textContent = 'Image enregistrée dans tes téléchargements : joins-la à ta conversation WhatsApp ou Snapchat.';
-      }
-    } catch (e) { console.error(e); msgEl.textContent = 'Impossible de créer l\'image. Réessaie.'; }
+    const text = buildCustomerText();
+    if (!text) { msgEl.textContent = 'Remplis au moins un champ.'; return; }
+    if (navigator.share) {
+      try { await navigator.share({ text: text }); msgEl.textContent = ''; return; }
+      catch (err) { if (err && err.name === 'AbortError') { msgEl.textContent = ''; return; } }
+    }
+    // Ordinateur : ouvre directement WhatsApp avec le texte déjà écrit
+    window.open('https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(text), '_blank');
   });
   // === Capture d'écran de la sélection (image PNG à partager) ===
   function wrapLines(ctx, text, maxW, maxLines) {
