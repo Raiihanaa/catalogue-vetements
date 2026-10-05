@@ -359,9 +359,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <h2>Ma sélection</h2>
   <div id="cartItems" class="admin-section"></div>
   <div class="step-title">Étape 1 — Demande les prix</div>
-  <p class="pay-note">Envoie la capture de ta sélection : on te répond avec les prix.</p>
+  <p class="pay-note">Tu choisis Snapchat ou WhatsApp, et on te répond avec les prix.</p>
   <div class="admin-row">
-    <button class="primary" id="shotCartBtn">Envoyer en capture</button>
+    <button class="primary" id="shotCartBtn">Envoyer ma sélection sur :</button>
     <button class="small" id="clearCartBtn">Vider le panier</button>
   </div>
   <div class="status-msg" id="cartStatusMsg"></div>
@@ -1533,7 +1533,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if (navigator.canShare && navigator.canShare({ files: files })) {
         try {
           await navigator.share({ files: files });
-          msgEl.textContent = 'Capture prête : choisis WhatsApp ou Snapchat pour l\'envoyer.';
+          msgEl.textContent = '';
           shared = true;
         } catch (err) {
           if (err && err.name === 'AbortError') { msgEl.textContent = ''; return; }
