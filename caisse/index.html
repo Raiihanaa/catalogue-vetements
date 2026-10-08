@@ -302,6 +302,10 @@
   .opt-qty button{ width:44px; height:44px; font-size:22px; border:1.5px solid var(--line,#d9d2c5); border-radius:10px; background:#fff; cursor:pointer; }
   .opt-qty input{ width:80px; height:44px; text-align:center; font-size:18px; border:1.5px solid var(--line,#d9d2c5); border-radius:10px; }
   #optComment{ width:100%; min-height:60px; padding:10px; border:1.5px solid var(--line,#d9d2c5); border-radius:10px; font-family:inherit; font-size:14px; box-sizing:border-box; }
+  input.inl, select.inl{ padding:6px 8px; border:1px solid transparent; border-radius:8px; background:transparent; font:inherit; color:inherit; box-sizing:border-box; max-width:100%; }
+  input.inl:hover, select.inl:hover{ border-color:var(--line, #d9d2c5); background:#fff; }
+  input.inl:focus, select.inl:focus{ border-color:var(--aubergine); background:#fff; outline:none; }
+  td.num input.inl{ text-align:right; }
   .color-option-grid{ display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
   .color-option{
     display:flex; align-items:center; gap:10px; padding:9px 10px; border:1px solid var(--line);
@@ -2703,14 +2707,19 @@ function renderProductTable(){
     const stock = getTotalStock(p);
     const colorDots = hasVariants(p) ? `<div class="swatch-dots">${p.colorVariants.map(v=>`<span class="swatch-dot" style="background:${v.hex}" title="${escapeHtml(v.name)}"></span>`).join('')}</div>` : '';
     const sizeBadges = hasSizeVariants(p) ? `<div class="swatch-dots">${p.sizeVariants.map(v=>`<span class="badge-pay" style="font-size:10px; padding:1px 5px;">${escapeHtml(v.name)}</span>`).join('')}</div>` : '';
+    const simple = !hasVariants(p) && !hasSizeVariants(p);
+    const catOpts = (categories.includes(p.cat) ? categories : [...categories, p.cat]).map(c=>`<option value="${escapeHtml(c)}" ${c===p.cat?'selected':''}>${escapeHtml(c)}</option>`).join('');
+    const stockCell = simple
+      ? `<input class="inl" type="number" inputmode="numeric" step="1" value="${p.stock||0}" data-id="${p.id}" data-f="stock" style="width:70px;">`
+      : `<span title="${currentLang==='zh'?'用“修改”调整库存':'Modifier pour changer le stock'}">${stock}</span>`;
     html += `<tr>
       <td><span class="row-thumb" style="${thumbStyle}"></span></td>
-      <td>${escapeHtml(p.name)}${colorDots}${sizeBadges}</td>
-      <td>${escapeHtml(p.cat)}</td>
-      <td class="num">${fmt(p.cost)}</td>
-      <td class="num">${fmt(p.price)}</td>
-      <td class="num" style="color:${marge>=0?'var(--profit)':'var(--loss)'}">${fmt(marge)}</td>
-      <td class="num ${stock<=LOW_STOCK_THRESHOLD?'stock-low':''}">${stock}</td>
+      <td><input class="inl" type="text" value="${escapeHtml(p.name)}" data-id="${p.id}" data-f="name" style="min-width:150px;">${colorDots}${sizeBadges}</td>
+      <td><select class="inl" data-id="${p.id}" data-f="cat">${catOpts}</select></td>
+      <td class="num"><input class="inl" type="number" inputmode="decimal" step="0.01" min="0" value="${p.cost}" data-id="${p.id}" data-f="cost" style="width:80px;"></td>
+      <td class="num"><input class="inl" type="number" inputmode="decimal" step="0.01" min="0" value="${p.price}" data-id="${p.id}" data-f="price" style="width:80px;"></td>
+      <td class="num" id="marge-${p.id}" style="color:${marge>=0?'var(--profit)':'var(--loss)'}">${fmt(marge)}</td>
+      <td class="num ${stock<=LOW_STOCK_THRESHOLD?'stock-low':''}">${stockCell}</td>
       <td>
         <button class="edit-link" onclick="editProduct('${p.id}')">${t('common.edit')}</button>
         <button class="danger-link" onclick="deleteProduct('${p.id}')">${t('common.delete')}</button>
@@ -2720,6 +2729,40 @@ function renderProductTable(){
   html += '</tbody></table>';
   container.innerHTML = html;
 }
+
+// Modification directe dans la liste des produits (sans remonter en haut)
+(function(){
+  const box = document.getElementById('productTable');
+  box.addEventListener('change', async (e)=>{
+    const el = e.target;
+    if(!el.classList || !el.classList.contains('inl')) return;
+    const p = products.find(x=>x.id===el.dataset.id);
+    if(!p) return;
+    const f = el.dataset.f;
+    if(f==='name'){
+      const v = el.value.trim();
+      if(!v){ el.value = p.name; return; }
+      p.name = v;
+    } else if(f==='cat'){
+      p.cat = el.value;
+    } else {
+      const v = parseFloat(String(el.value).replace(',','.'));
+      if(isNaN(v) || v < 0){ el.value = p[f]; return; }
+      p[f] = f==='stock' ? Math.round(v) : v;
+    }
+    if(f==='cost' || f==='price'){
+      const m = document.getElementById('marge-'+p.id);
+      if(m){ const mg = p.price - p.cost; m.textContent = fmt(mg); m.style.color = mg>=0 ? 'var(--profit)' : 'var(--loss)'; }
+    }
+    await saveProducts();
+    showToast(t('produits.updatedToast'));
+    renderTabs(); renderProductGrid(); renderOrdTabs(); renderOrderProductGrid();
+    document.getElementById('prodCount').textContent = products.length;
+  });
+  box.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter' && e.target.classList && e.target.classList.contains('inl')){ e.preventDefault(); e.target.blur(); }
+  });
+})();
 
 // ---------- Stock page ----------
 function renderStockPage(){
