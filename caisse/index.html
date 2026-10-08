@@ -698,6 +698,19 @@
     <div style="height:18px;"></div>
 
     <section class="panel">
+      <h2 data-i18n="cl.title">Statistiques clients</h2>
+      <div class="btn-row" id="clPeriodRow" style="margin-bottom:12px;">
+        <button type="button" class="secondary-btn cl-period" data-days="7" data-i18n="cl.p7">7 jours</button>
+        <button type="button" class="secondary-btn cl-period" data-days="30" data-i18n="cl.p30">30 jours</button>
+        <button type="button" class="secondary-btn cl-period" data-days="0" data-i18n="cl.pAll">Tout</button>
+      </div>
+      <div class="summary-bar" id="clTiles" style="margin-bottom:0;"></div>
+      <div id="clTable" style="margin-top:12px; overflow-x:auto;"></div>
+    </section>
+
+    <div style="height:18px;"></div>
+
+    <section class="panel">
       <h2 data-i18n="export.title">Exporter les données</h2>
       <p class="hint" data-i18n="export.hint">Télécharge un fichier Excel de tes ventes, pour tes archives ou ta comptabilité.</p>
       <div class="btn-row">
@@ -897,6 +910,7 @@ const I18N = {
     'fond.note': "En fin de journée, compare ce montant théorique au comptage réel de ta caisse pour repérer tout écart.",
     'fond.emptyMovements': 'Aucun mouvement manuel aujourd\u2019hui.', 'fond.savedToast': 'Fond de caisse enregistré',
     'dashboard.avgBasket': 'Panier moyen', 'dashboard.paymentBreakdown': 'Répartition par mode de paiement',
+    'cl.title': 'Statistiques clients', 'cl.p7': '7 jours', 'cl.p30': '30 jours', 'cl.pAll': 'Tout', 'cl.clients': 'Clients identifiés', 'cl.loyal': 'Clients fidèles (2 achats ou +)', 'cl.anon': 'Ventes sans nom', 'cl.avgPerClient': 'Dépense moyenne par client', 'cl.colClient': 'Client', 'cl.colOrders': 'Achats', 'cl.colTotal': 'Total dépensé', 'cl.colLast': 'Dernier achat', 'cl.colType': 'Type', 'cl.loyalBadge': 'Fidèle', 'cl.newBadge': 'Nouveau', 'cl.empty': 'Aucune vente avec un nom de client sur cette période. Écris le nom du client à la caisse pour suivre tes clients.',
     'dashboard.topProducts': 'Top produits du jour', 'dashboard.fullHistory': 'Historique détaillé des ventes',
     'dashboard.emptySales': 'Aucune vente pour l\u2019instant.', 'dashboard.tableProduct': 'Produit',
     'dashboard.tableQty': 'Qté', 'dashboard.tableRevenue': 'CA', 'dashboard.tableTime': 'Heure',
@@ -1011,6 +1025,7 @@ const I18N = {
     'fond.note': '一天结束时,将此理论金额与实际清点金额对比,以发现差异。',
     'fond.emptyMovements': '今天没有手动变动记录。', 'fond.savedToast': '备用金已保存',
     'dashboard.avgBasket': '平均客单价', 'dashboard.paymentBreakdown': '支付方式分布',
+    'cl.title': '客户统计', 'cl.p7': '7天', 'cl.p30': '30天', 'cl.pAll': '全部', 'cl.clients': '已记录客户', 'cl.loyal': '回头客（2次及以上）', 'cl.anon': '未留名的销售', 'cl.avgPerClient': '客户平均消费', 'cl.colClient': '客户', 'cl.colOrders': '购买次数', 'cl.colTotal': '累计消费', 'cl.colLast': '最近购买', 'cl.colType': '类型', 'cl.loyalBadge': '回头客', 'cl.newBadge': '新客户', 'cl.empty': '该时段没有留客户姓名的销售。收银时填写客户姓名即可统计。',
     'dashboard.topProducts': '今日畅销商品', 'dashboard.fullHistory': '销售明细记录',
     'dashboard.emptySales': '暂无销售记录。', 'dashboard.tableProduct': '商品',
     'dashboard.tableQty': '数量', 'dashboard.tableRevenue': '营业额', 'dashboard.tableTime': '时间',
@@ -3271,7 +3286,59 @@ function renderDashboard(){
     html += '</tbody></table>';
     fullEl.innerHTML = html;
   }
+  renderClientStats();
 }
+
+// ---------- Statistiques clients ----------
+let clDays = 30;
+function getAllSalesByDate(){
+  const out = {};
+  try{
+    const pre = 'caisse:' + SALES_KEY_PREFIX;
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(k && k.startsWith(pre)){
+        const d = k.slice(pre.length);
+        try{ out[d] = JSON.parse(localStorage.getItem(k)) || []; }catch(e){}
+      }
+    }
+  }catch(e){}
+  if(!Object.keys(out).length) out[todayKey()] = sales;
+  return out;
+}
+function renderClientStats(){
+  const tilesEl = document.getElementById('clTiles');
+  const tableEl = document.getElementById('clTable');
+  if(!tilesEl || !tableEl) return;
+  document.querySelectorAll('.cl-period').forEach(b=>b.classList.toggle('primary-btn', +b.dataset.days === clDays));
+  const anonNames = ['Client anonyme', '匿名客户', t('common.anonCustomer')].map(x=>String(x).toLowerCase());
+  const byDate = getAllSalesByDate();
+  const limit = clDays ? new Date(Date.now() - clDays*86400000).toISOString().slice(0,10) : '';
+  const map = {}; let anon = 0;
+  Object.keys(byDate).sort().forEach(d=>{
+    if(limit && d < limit) return;
+    (byDate[d]||[]).forEach(sale=>{
+      const raw = String(sale.customer||'').trim();
+      if(!raw || anonNames.includes(raw.toLowerCase())){ anon++; return; }
+      const key = raw.toLowerCase();
+      const c = map[key] || (map[key] = { name:raw, n:0, total:0, last:'' });
+      c.n++; c.total += sale.total||0;
+      if(!c.last || d >= c.last) c.last = d;
+    });
+  });
+  const list = Object.values(map).sort((a,b)=>b.total - a.total);
+  const loyal = list.filter(c=>c.n >= 2).length;
+  const sum = list.reduce((x,c)=>x+c.total,0);
+  const tile = (label,val)=>`<div class="mini-card"><div class="label">${label}</div><div class="value">${val}</div></div>`;
+  tilesEl.innerHTML = tile(t('cl.clients'), list.length) + tile(t('cl.loyal'), loyal) + tile(t('cl.avgPerClient'), fmt(list.length ? sum/list.length : 0)) + tile(t('cl.anon'), anon);
+  if(!list.length){ tableEl.innerHTML = `<div class="empty-cart">${t('cl.empty')}</div>`; return; }
+  tableEl.innerHTML = `<table><thead><tr><th>${t('cl.colClient')}</th><th class="num">${t('cl.colOrders')}</th><th class="num">${t('cl.colTotal')}</th><th>${t('cl.colLast')}</th><th>${t('cl.colType')}</th></tr></thead><tbody>` +
+    list.slice(0,15).map(c=>`<tr><td>${escapeHtml(c.name)}</td><td class="num">${c.n}</td><td class="num">${fmt(c.total)}</td><td>${formatDateLabel(c.last)}</td><td><span class="badge-pay">${c.n>=2 ? t('cl.loyalBadge') : t('cl.newBadge')}</span></td></tr>`).join('') + '</tbody></table>';
+}
+document.getElementById('clPeriodRow').addEventListener('click', (e)=>{
+  const b = e.target.closest('.cl-period'); if(!b) return;
+  clDays = +b.dataset.days; renderClientStats();
+});
 
 // ---------- Excel export ----------
 function formatDateLabel(dateStr){
