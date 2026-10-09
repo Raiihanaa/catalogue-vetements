@@ -591,6 +591,10 @@
         </div>
 
         <div class="variant-toggle-row">
+          <input type="checkbox" id="ordUnpaid">
+          <label style="margin:0;" data-i18n="commandes.unpaidLabel">Le client n'a pas encore payé (rien encaissé)</label>
+        </div>
+        <div class="variant-toggle-row">
           <input type="checkbox" id="ordDeposit">
           <label style="margin:0;" data-i18n="commandes.depositLabel">Le client verse un acompte (paiement partiel)</label>
         </div>
@@ -603,12 +607,14 @@
           </div>
         </div>
 
+        <div id="ordPaySection">
         <label style="margin-top:4px;"><span data-i18n="commandes.paymentMethodLabel">Mode de paiement</span> <span id="ordPayLabel" data-i18n="commandes.fullAmount">(montant total)</span></label>
         <div class="pay-methods" id="ordPayMethods">
           <div class="pay-btn" data-pay="Cash">Cash</div>
           <div class="pay-btn" data-pay="Alipay">Alipay</div>
           <div class="pay-btn" data-pay="CB" data-i18n="common.cardPayment">Carte bancaire</div>
           <div class="pay-btn" data-pay="Autre" data-i18n="common.other">Autre</div>
+        </div>
         </div>
 
         <div style="margin-bottom:14px;">
@@ -1008,6 +1014,7 @@ const I18N = {
     'rc.title': 'Reçu', 'rc.shopName': 'Nom de la boutique (sur le reçu)', 'rc.auto': 'Afficher le reçu après chaque vente', 'rc.share': 'Envoyer au client', 'rc.save': 'Enregistrer l\'image', 'rc.thanks': 'Merci de votre visite !', 'rc.client': 'Client', 'rc.payment': 'Paiement', 'rc.received': 'Reçu', 'rc.change': 'Rendu', 'rc.total': 'TOTAL',
     'produits.backupShare': 'Envoyer la sauvegarde (mail, WeChat…)',
     'caisse.wechatLabel': 'WeChat du client (optionnel)', 'caisse.wechatPlaceholder': 'ID WeChat',
+    'commandes.unpaidLabel': 'Le client n\'a pas encore payé (rien encaissé)', 'commandes.createdUnpaidToast': 'Commande créée — rien encaissé', 'commandes.unpaidBadge': 'Non payé',
     'dashboard.topProducts': 'Top produits du jour', 'dashboard.fullHistory': 'Historique détaillé des ventes',
     'dashboard.emptySales': 'Aucune vente pour l\u2019instant.', 'dashboard.tableProduct': 'Produit',
     'dashboard.tableQty': 'Qté', 'dashboard.tableRevenue': 'CA', 'dashboard.tableTime': 'Heure',
@@ -1135,6 +1142,7 @@ const I18N = {
     'rc.title': '收据', 'rc.shopName': '店名（显示在收据上）', 'rc.auto': '每次销售后显示收据', 'rc.share': '发送给客户', 'rc.save': '保存图片', 'rc.thanks': '谢谢惠顾！', 'rc.client': '客户', 'rc.payment': '支付方式', 'rc.received': '实收', 'rc.change': '找零', 'rc.total': '合计',
     'produits.backupShare': '发送备份（邮件、微信…）',
     'caisse.wechatLabel': '客户微信（选填）', 'caisse.wechatPlaceholder': '微信号',
+    'commandes.unpaidLabel': '客户尚未付款（未收款）', 'commandes.createdUnpaidToast': '订单已创建 — 未收款', 'commandes.unpaidBadge': '未付款',
     'dashboard.topProducts': '今日畅销商品', 'dashboard.fullHistory': '销售明细记录',
     'dashboard.emptySales': '暂无销售记录。', 'dashboard.tableProduct': '商品',
     'dashboard.tableQty': '数量', 'dashboard.tableRevenue': '营业额', 'dashboard.tableTime': '时间',
@@ -2280,6 +2288,20 @@ document.getElementById('ordDeposit').addEventListener('change', (e)=>{
   updateOrderDepositCalc();
   updateOrderConfirmState();
 });
+document.getElementById('ordUnpaid').addEventListener('change', (e)=>{
+  const on = e.target.checked;
+  const dep = document.getElementById('ordDeposit');
+  if(on){
+    dep.checked = false;
+    document.getElementById('ordDepositExtra').classList.remove('show');
+    document.getElementById('ordPayLabel').textContent = t('commandes.fullAmount');
+    selectedOrderPayment = null;
+    document.querySelectorAll('#ordPayMethods .pay-btn').forEach(b=>b.classList.remove('selected'));
+  }
+  dep.parentElement.style.display = on ? 'none' : '';
+  document.getElementById('ordPaySection').style.display = on ? 'none' : '';
+  updateOrderConfirmState();
+});
 document.getElementById('ordDepositAmount').addEventListener('input', ()=>{
   updateOrderDepositCalc();
   updateOrderConfirmState();
@@ -2301,8 +2323,9 @@ function updateOrderDepositCalc(){
 function updateOrderConfirmState(){
   const customer = document.getElementById('ordCustomer').value.trim();
   const btn = document.getElementById('ordConfirmBtn');
-  let ok = orderCart.length > 0 && !!selectedOrderPayment && !!customer;
-  if(document.getElementById('ordDeposit').checked){
+  const unpaid = document.getElementById('ordUnpaid').checked;
+  let ok = orderCart.length > 0 && (unpaid || !!selectedOrderPayment) && !!customer;
+  if(!unpaid && document.getElementById('ordDeposit').checked){
     const total = orderCartTotal();
     const deposit = parseFloat(document.getElementById('ordDepositAmount').value) || 0;
     ok = ok && deposit > 0 && deposit < total;
@@ -2313,7 +2336,8 @@ document.getElementById('ordCustomer').addEventListener('input', updateOrderConf
 
 document.getElementById('ordConfirmBtn').addEventListener('click', async ()=>{
   const customer = document.getElementById('ordCustomer').value.trim();
-  if(orderCart.length === 0 || !selectedOrderPayment || !customer) return;
+  const isUnpaid = document.getElementById('ordUnpaid').checked;
+  if(orderCart.length === 0 || (!isUnpaid && !selectedOrderPayment) || !customer) return;
 
   const total = orderCartTotal();
   const totalCost = orderCart.reduce((s,c)=>s+c.cost*c.qty,0);
@@ -2321,23 +2345,25 @@ document.getElementById('ordConfirmBtn').addEventListener('click', async ()=>{
   const expectedDate = document.getElementById('ordDate').value;
   const notes = document.getElementById('ordNotes').value.trim();
 
-  const isDeposit = document.getElementById('ordDeposit').checked;
-  const depositAmount = isDeposit ? (parseFloat(document.getElementById('ordDepositAmount').value) || 0) : total;
+  const isDeposit = !isUnpaid && document.getElementById('ordDeposit').checked;
+  const depositAmount = isUnpaid ? 0 : (isDeposit ? (parseFloat(document.getElementById('ordDepositAmount').value) || 0) : total);
   if(isDeposit && (depositAmount <= 0 || depositAmount >= total)) return;
 
   const remaining = total - depositAmount;
-  const depositCost = totalCost * (depositAmount / total);
+  const depositCost = total > 0 ? totalCost * (depositAmount / total) : 0;
   const itemsSnapshot = orderCart.map(c=>({ id:c.id, name:c.name, qty:c.qty, price:getEffectiveUnitPrice(c), cost:c.cost, colorName:c.colorName || null }));
 
-  // record the amount actually received today as a sale
-  sales.push({
-    customer: customer,
-    items: itemsSnapshot,
-    total: depositAmount, cost: depositCost, payment: selectedOrderPayment,
-    cashReceived: null, change: null,
-    time: new Date().toISOString()
-  });
-  await saveSales();
+  // record the amount actually received today as a sale (rien si le client n'a pas payé)
+  if(!isUnpaid){
+    sales.push({
+      customer: customer, wechat: phone,
+      items: itemsSnapshot,
+      total: depositAmount, cost: depositCost, payment: selectedOrderPayment,
+      cashReceived: null, change: null,
+      time: new Date().toISOString()
+    });
+    await saveSales();
+  }
 
   // reserve stock immediately regardless of deposit vs full payment
   applyStockDecrement(orderCart);
@@ -2348,7 +2374,7 @@ document.getElementById('ordConfirmBtn').addEventListener('click', async ()=>{
     customer, phone, expectedDate, notes,
     items: itemsSnapshot,
     total, totalCost,
-    depositPaid: depositAmount, depositPayment: selectedOrderPayment,
+    depositPaid: depositAmount, depositPayment: isUnpaid ? null : selectedOrderPayment,
     remaining: remaining, remainingCost: totalCost - depositCost,
     finalPayment: null,
     status: 'pending',
@@ -2364,6 +2390,9 @@ document.getElementById('ordConfirmBtn').addEventListener('click', async ()=>{
   document.getElementById('ordDate').value = '';
   document.getElementById('ordNotes').value = '';
   document.getElementById('ordDeposit').checked = false;
+  document.getElementById('ordUnpaid').checked = false;
+  document.getElementById('ordDeposit').parentElement.style.display = '';
+  document.getElementById('ordPaySection').style.display = '';
   document.getElementById('ordDepositAmount').value = '';
   document.getElementById('ordDepositExtra').classList.remove('show');
   document.getElementById('ordPayLabel').textContent = t('commandes.fullAmount');
@@ -2375,7 +2404,8 @@ document.getElementById('ordConfirmBtn').addEventListener('click', async ()=>{
   renderProductTable();
   renderSummary();
   renderHistory();
-  showToast(remaining > 0 ? `${t('commandes.createdDepositToast')} ${fmt(depositAmount)} ${t('commandes.encaisse')}` : t('commandes.createdToast'));
+  refreshClientDatalist();
+  showToast(isUnpaid ? t('commandes.createdUnpaidToast') : remaining > 0 ? `${t('commandes.createdDepositToast')} ${fmt(depositAmount)} ${t('commandes.encaisse')}` : t('commandes.createdToast'));
 });
 
 function renderOrdFilterTabs(){
@@ -2416,7 +2446,7 @@ function renderOrdersList(){
       <td>${escapeHtml(o.customer)}${o.phone ? `<div class="ci-meta">${escapeHtml(o.phone)}</div>`:''}</td>
       <td>${ordersItemsSummary(o.items)}${o.notes ? `<div class="ci-meta">${escapeHtml(o.notes)}</div>`:''}</td>
       <td class="num">${fmt(o.total)}</td>
-      <td class="num">${fmt(o.depositPaid != null ? o.depositPaid : o.total)}</td>
+      <td class="num">${(o.depositPaid === 0) ? `<span class="badge-pay" style="color:var(--loss);">${t('commandes.unpaidBadge')}</span>` : fmt(o.depositPaid != null ? o.depositPaid : o.total)}</td>
       <td class="num" style="${hasBalance?'color:var(--loss); font-weight:700;':''}">${fmt(o.remaining||0)}</td>
       <td>${dateStr}</td>
       <td><span class="badge-pay" style="${o.status==='pending'?'color:var(--gold); border-color:var(--gold);':'color:var(--profit); border-color:var(--profit);'}">${statusLabel}</span></td>
