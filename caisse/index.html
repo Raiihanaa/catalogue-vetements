@@ -627,6 +627,7 @@
         <div class="receipt-strip"></div>
 
         <h2><span data-i18n="commandes.listTitle">Commandes</span> <span class="badge-pay" id="ordCount">0</span></h2>
+        <input type="text" id="ordSearch" data-i18n-placeholder="commandes.searchOrders" placeholder="Retrouver une commande : nom, WeChat ou article..." style="margin-bottom:8px;">
         <div class="tabs" id="ordFilterTabs"></div>
         <div id="ordersList" style="max-height:260px; overflow-y:auto;"></div>
       </section>
@@ -1015,6 +1016,7 @@ const I18N = {
     'produits.backupShare': 'Envoyer la sauvegarde (mail, WeChat…)',
     'caisse.wechatLabel': 'WeChat du client (optionnel)', 'caisse.wechatPlaceholder': 'ID WeChat',
     'commandes.unpaidLabel': 'Le client n\'a pas encore payé (rien encaissé)', 'commandes.createdUnpaidToast': 'Commande créée — rien encaissé', 'commandes.unpaidBadge': 'Non payé',
+    'commandes.searchOrders': 'Retrouver une commande : nom, WeChat ou article...', 'commandes.paidFull': 'Payée en entier', 'commandes.paidPartial': 'Acompte versé', 'commandes.paidNone': 'Non payée', 'commandes.paidSettled': 'Soldée',
     'dashboard.topProducts': 'Top produits du jour', 'dashboard.fullHistory': 'Historique détaillé des ventes',
     'dashboard.emptySales': 'Aucune vente pour l\u2019instant.', 'dashboard.tableProduct': 'Produit',
     'dashboard.tableQty': 'Qté', 'dashboard.tableRevenue': 'CA', 'dashboard.tableTime': 'Heure',
@@ -1143,6 +1145,7 @@ const I18N = {
     'produits.backupShare': '发送备份（邮件、微信…）',
     'caisse.wechatLabel': '客户微信（选填）', 'caisse.wechatPlaceholder': '微信号',
     'commandes.unpaidLabel': '客户尚未付款（未收款）', 'commandes.createdUnpaidToast': '订单已创建 — 未收款', 'commandes.unpaidBadge': '未付款',
+    'commandes.searchOrders': '查找订单：姓名、微信或商品…', 'commandes.paidFull': '已全额付款', 'commandes.paidPartial': '已付定金', 'commandes.paidNone': '未付款', 'commandes.paidSettled': '已结清',
     'dashboard.topProducts': '今日畅销商品', 'dashboard.fullHistory': '销售明细记录',
     'dashboard.emptySales': '暂无销售记录。', 'dashboard.tableProduct': '商品',
     'dashboard.tableQty': '数量', 'dashboard.tableRevenue': '营业额', 'dashboard.tableTime': '时间',
@@ -2408,6 +2411,8 @@ document.getElementById('ordConfirmBtn').addEventListener('click', async ()=>{
   showToast(isUnpaid ? t('commandes.createdUnpaidToast') : remaining > 0 ? `${t('commandes.createdDepositToast')} ${fmt(depositAmount)} ${t('commandes.encaisse')}` : t('commandes.createdToast'));
 });
 
+document.getElementById('ordSearch').addEventListener('input', renderOrdersList);
+
 function renderOrdFilterTabs(){
   const tabsEl = document.getElementById('ordFilterTabs');
   const filters = [
@@ -2429,7 +2434,10 @@ function ordersItemsSummary(items){ return items.map(i=>`${i.qty}× ${escapeHtml
 
 function renderOrdersList(){
   renderOrdFilterTabs();
-  const visible = ordFilter === 'all' ? orders : orders.filter(o=>o.status===ordFilter);
+  const oq = normName(document.getElementById('ordSearch').value);
+  const visible = oq
+    ? orders.filter(o=> normName(o.customer).includes(oq) || normName(o.phone).includes(oq) || (o.items||[]).some(i=>normName(i.name).includes(oq)))
+    : (ordFilter === 'all' ? orders : orders.filter(o=>o.status===ordFilter));
   document.getElementById('ordCount').textContent = orders.filter(o=>o.status==='pending').length;
 
   const container = document.getElementById('ordersList');
@@ -3552,7 +3560,8 @@ function openClientModal(key){
     const fav = Object.entries(c.prods).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([n,q])=>`${escapeHtml(n)} ×${q}`).join('<br>') || '—';
     const favPay = Object.entries(c.pays).sort((a,b)=>b[1]-a[1])[0];
     const buys = c.buys.slice().sort((a,b)=>b.time.localeCompare(a.time)).slice(0,8).map(b=>`<tr><td>${new Date(b.time).toLocaleDateString(loc)}</td><td>${itemsSummary(b.items)}</td><td class="num">${fmt(b.total)}</td></tr>`).join('');
-    const ords = c.orders.slice().reverse().slice(0,6).map(o=>`<tr><td>${o.createdAt ? new Date(o.createdAt).toLocaleDateString(loc) : '—'}</td><td>${ordersItemsSummary(o.items)}</td><td class="num">${fmt(o.total)}${(o.remaining||0)>0 ? `<div class="ci-meta" style="color:var(--loss);">${t('cli.due')} ${fmt(o.remaining)}</div>`:''}</td></tr>`).join('');
+    const payState = (o)=> (o.depositPaid === 0 && (o.remaining||0) > 0) ? t('commandes.paidNone') : ((o.remaining||0) > 0 ? `${t('commandes.paidPartial')} ${fmt(o.depositPaid)}` : (o.finalPayment ? t('commandes.paidSettled') : t('commandes.paidFull')));
+    const ords = c.orders.slice().reverse().slice(0,10).map(o=>`<tr><td>${o.createdAt ? new Date(o.createdAt).toLocaleString(loc, {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '—'}</td><td>${ordersItemsSummary(o.items)}<div class="ci-meta">${o.status==='pending' ? t('commandes.filterPending') : t('commandes.filterDelivered')}</div></td><td class="num">${fmt(o.total)}<div class="ci-meta" style="${(o.remaining||0)>0 ? 'color:var(--loss); font-weight:600;' : ''}">${payState(o)}${(o.remaining||0)>0 ? ` · ${t('cli.due')} ${fmt(o.remaining)}` : ''}</div></td></tr>`).join('');
     document.getElementById('cmStats').innerHTML = `
       <div class="summary-bar" style="margin-bottom:10px;">
         <div class="mini-card"><div class="label">${t('cli.colOrders')}</div><div class="value">${c.n}</div></div>
