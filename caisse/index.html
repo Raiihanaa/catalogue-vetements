@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Caisse — Boutique</title>
+<title>Caisse</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
@@ -334,7 +334,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1 data-i18n="header.title">Caisse — Boutique Mode</h1>
+    <h1 data-i18n="header.title">Caisse</h1>
     <div style="display:flex; align-items:center; gap:10px;">
       <button id="langToggleBtn" class="secondary-btn" style="padding:6px 14px; font-size:12.5px;">中文 / FR</button>
     </div>
@@ -343,6 +343,7 @@
   <nav class="main-tabs">
     <button class="active" data-page="caisse" data-i18n="nav.caisse">Caisse</button>
     <button data-page="commandes" data-i18n="nav.commandes">Commandes</button>
+    <button data-page="clients" data-i18n="nav.clients">Clients</button>
     <button data-page="produits" data-i18n="nav.produits">Produits</button>
     <button data-page="stock" data-i18n="nav.stock">Stock</button>
     <button data-page="fond" data-i18n="nav.fond">Fond de caisse</button>
@@ -386,7 +387,7 @@
         <h2 data-i18n="caisse.ticketTitle">Ticket en cours</h2>
         <div class="customer-field">
           <label data-i18n="caisse.customerLabel">Nom du client (optionnel)</label>
-          <input type="text" id="customerName" data-i18n-placeholder="caisse.customerPlaceholder" placeholder="Ex : Mme Dupont">
+          <input type="text" id="customerName" list="clientNames" autocomplete="off" data-i18n-placeholder="caisse.customerPlaceholder" placeholder="Ex : Mme Dupont">
         </div>
         <div class="cart-list" id="cartList"></div>
         <div class="cart-total-row">
@@ -509,7 +510,10 @@
 
         <h2 data-i18n="produits.backupTitle">Sauvegarde complète / transfert vers la tablette</h2>
         <p class="hint" data-i18n="produits.backupHint">Un seul fichier avec tout : produits, photos, catégories, tailles, commandes, ventes. Exporte-le sur l'ordi, envoie-le à la tablette, puis importe-le là-bas. ATTENTION : l'import remplace les données de cet appareil.</p>
-        <button class="secondary-btn" id="backupExportBtn" data-i18n="produits.backupExport">Télécharger la sauvegarde</button>
+        <div class="btn-row">
+          <button class="secondary-btn" id="backupExportBtn" data-i18n="produits.backupExport">Télécharger la sauvegarde</button>
+          <button class="secondary-btn" id="backupShareBtn" data-i18n="produits.backupShare">Envoyer la sauvegarde (mail, WeChat…)</button>
+        </div>
         <div class="import-box" style="margin-top:10px;">
           <div style="font-size:13px;" data-i18n="produits.backupImportLabel">Restaurer une sauvegarde (.json)</div>
           <input type="file" id="backupImportFile" accept=".json,application/json">
@@ -550,7 +554,7 @@
         <p class="hint" data-i18n="commandes.hint">Pour les clients qui commandent et paient à l'avance, avant de venir récupérer leur article.</p>
         <div style="margin-bottom:10px;">
           <label data-i18n="commandes.customerLabel">Nom du client</label>
-          <input type="text" id="ordCustomer" data-i18n-placeholder="caisse.customerPlaceholder" placeholder="Ex : Mme Dupont" required>
+          <input type="text" id="ordCustomer" list="clientNames" autocomplete="off" data-i18n-placeholder="caisse.customerPlaceholder" placeholder="Ex : Mme Dupont" required>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;">
           <div>
@@ -614,6 +618,18 @@
   </div>
 
   <!-- ================= PAGE STOCK ================= -->
+  <!-- ================= PAGE CLIENTS ================= -->
+  <div class="page" id="page-clients">
+    <div class="summary-bar" id="cliTiles"></div>
+    <section class="panel">
+      <div class="btn-row" style="margin-bottom:12px; align-items:center;">
+        <input type="text" id="cliSearch" data-i18n-placeholder="cli.search" placeholder="Rechercher un client ou un WeChat..." style="flex:1; min-width:180px;">
+        <button type="button" class="primary-btn" id="cliAddBtn" data-i18n="cli.add">+ Ajouter un client</button>
+      </div>
+      <div id="cliTable" style="overflow-x:auto;"></div>
+    </section>
+  </div>
+
   <div class="page" id="page-stock">
     <div class="summary-bar">
       <div class="mini-card">
@@ -763,6 +779,45 @@
   </div>
 </div>
 
+<datalist id="clientNames"></datalist>
+
+<div class="modal-overlay" id="clientModalOverlay">
+  <div class="modal-box" style="max-height:90vh; overflow:auto; max-width:560px;">
+    <h3 id="cmTitle"></h3>
+    <div id="cmNameRow" style="display:none; margin-bottom:8px;">
+      <label data-i18n="cli.name">Nom du client</label>
+      <input type="text" id="cmName" style="width:100%; box-sizing:border-box;">
+    </div>
+    <label data-i18n="cli.wechat">WeChat</label>
+    <input type="text" id="cmWechat" style="width:100%; box-sizing:border-box; margin-bottom:8px;">
+    <label data-i18n="cli.notes">Notes (tailles, goûts, remarques…)</label>
+    <textarea id="cmNotes" style="width:100%; min-height:70px; box-sizing:border-box; font-family:inherit; font-size:14px; padding:10px; border:1.5px solid var(--line); border-radius:10px;"></textarea>
+    <div id="cmStats" style="margin-top:12px;"></div>
+    <div class="btn-row" style="margin-top:14px;">
+      <button type="button" class="primary-btn" id="cmSave" data-i18n="common.save">Enregistrer</button>
+      <button type="button" class="secondary-btn" id="cmClose" data-i18n="cli.close">Fermer</button>
+      <button type="button" class="danger-link" id="cmDelete" data-i18n="cli.deleteCard">Supprimer la fiche</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="receiptOverlay">
+  <div class="modal-box" style="max-height:92vh; overflow:auto; max-width:460px; text-align:center;">
+    <h3 data-i18n="rc.title">Reçu</h3>
+    <img id="rcImg" alt="" style="max-width:100%; border:1px solid var(--line); border-radius:8px;">
+    <div style="margin:10px 0; text-align:left;">
+      <label data-i18n="rc.shopName">Nom de la boutique (sur le reçu)</label>
+      <input type="text" id="rcShop" style="width:100%; box-sizing:border-box;">
+      <label style="display:flex; gap:8px; align-items:center; margin-top:8px; font-size:13px;"><input type="checkbox" id="rcAuto" style="width:auto; flex:none; margin:0;"> <span data-i18n="rc.auto">Afficher le reçu après chaque vente</span></label>
+    </div>
+    <div class="btn-row" style="justify-content:center;">
+      <button type="button" class="primary-btn" id="rcShare" data-i18n="rc.share">Envoyer au client</button>
+      <button type="button" class="secondary-btn" id="rcSave" data-i18n="rc.save">Enregistrer l'image</button>
+      <button type="button" class="secondary-btn" id="rcClose" data-i18n="cli.close">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="optModalOverlay">
   <div class="modal-box" style="max-height:90vh; overflow:auto;">
     <h3 id="optModalTitle"></h3>
@@ -855,7 +910,7 @@
 // ---- Internationalization ----
 const I18N = {
   fr: {
-    'header.title': 'Caisse — Boutique Mode',
+    'header.title': 'Caisse',
     'header.demo': 'Démo fictive',
     'nav.caisse': 'Caisse', 'nav.commandes': 'Commandes', 'nav.produits': 'Produits',
     'nav.stock': 'Stock', 'nav.fond': 'Fond de caisse', 'nav.dashboard': 'Dashboard',
@@ -933,6 +988,14 @@ const I18N = {
     'cl.title': 'Statistiques clients', 'cl.p7': '7 jours', 'cl.p30': '30 jours', 'cl.pAll': 'Tout', 'cl.clients': 'Clients identifiés', 'cl.loyal': 'Clients fidèles (2 achats ou +)', 'cl.anon': 'Ventes sans nom', 'cl.avgPerClient': 'Dépense moyenne par client', 'cl.colClient': 'Client', 'cl.colOrders': 'Achats', 'cl.colTotal': 'Total dépensé', 'cl.colLast': 'Dernier achat', 'cl.colType': 'Type', 'cl.loyalBadge': 'Fidèle', 'cl.newBadge': 'Nouveau', 'cl.empty': 'Aucune vente avec un nom de client sur cette période. Écris le nom du client à la caisse pour suivre tes clients.',
     'off.warn': 'Pas de connexion internet. Tes ventes restent enregistrées sur cet appareil, mais NE RECHARGE PAS la page : elle pourrait ne plus s\'ouvrir.', 'off.ok': 'Mode hors ligne : tes ventes restent enregistrées sur cet appareil.',
     'tb.view': 'Voir le ticket ↓', 'tb.back': 'Retour aux produits ↑', 'tb.items': 'article(s)', 'tb.empty': 'Ticket vide',
+    'nav.clients': 'Clients', 'common.save': 'Enregistrer',
+    'cli.search': 'Rechercher un client ou un WeChat...', 'cli.add': '+ Ajouter un client', 'cli.close': 'Fermer', 'cli.deleteCard': 'Supprimer la fiche',
+    'cli.name': 'Nom du client', 'cli.wechat': 'WeChat', 'cli.notes': 'Notes (tailles, goûts, remarques…)', 'cli.newTitle': 'Nouveau client',
+    'cli.totalClients': 'Clients', 'cli.totalCA': 'CA clients (encaissé)', 'cli.avgCA': 'CA moyen par client', 'cli.avgBasket': 'Panier moyen',
+    'cli.colClient': 'Client', 'cli.colOrders': 'Achats', 'cli.colCA': 'CA total', 'cli.colAvg': 'Panier moyen', 'cli.colLast': 'Dernier achat', 'cli.colCmd': 'Commandes', 'cli.pending': 'en attente',
+    'cli.empty': 'Aucun client pour le moment. Écris le nom du client à la caisse ou ajoute-le ici.', 'cli.fav': 'Produits préférés', 'cli.favPay': 'Paiement habituel', 'cli.history': 'Derniers achats', 'cli.ordersHist': 'Commandes', 'cli.due': 'Reste à payer', 'cli.savedToast': 'Fiche enregistrée ✓', 'cli.needName': 'Écris un nom', 'cli.exists': 'Ce client existe déjà', 'cli.deleteConfirm': 'Supprimer la fiche de ce client ? (ses ventes restent enregistrées)', 'cli.noneYet': 'Pas encore d\'achat',
+    'rc.title': 'Reçu', 'rc.shopName': 'Nom de la boutique (sur le reçu)', 'rc.auto': 'Afficher le reçu après chaque vente', 'rc.share': 'Envoyer au client', 'rc.save': 'Enregistrer l\'image', 'rc.thanks': 'Merci de votre visite !', 'rc.client': 'Client', 'rc.payment': 'Paiement', 'rc.received': 'Reçu', 'rc.change': 'Rendu', 'rc.total': 'TOTAL',
+    'produits.backupShare': 'Envoyer la sauvegarde (mail, WeChat…)',
     'dashboard.topProducts': 'Top produits du jour', 'dashboard.fullHistory': 'Historique détaillé des ventes',
     'dashboard.emptySales': 'Aucune vente pour l\u2019instant.', 'dashboard.tableProduct': 'Produit',
     'dashboard.tableQty': 'Qté', 'dashboard.tableRevenue': 'CA', 'dashboard.tableTime': 'Heure',
@@ -972,7 +1035,7 @@ const I18N = {
     'password.resetToast': 'Mot de passe réinitialisé', 'password.unlockedToast': 'Accès débloqué pour cette session',
   },
   zh: {
-    'header.title': '收银台 — 时装精品店',
+    'header.title': '收银台',
     'header.demo': '演示版',
     'nav.caisse': '收银', 'nav.commandes': '订单', 'nav.produits': '商品',
     'nav.stock': '库存', 'nav.fond': '备用金', 'nav.dashboard': '仪表盘',
@@ -1050,6 +1113,14 @@ const I18N = {
     'cl.title': '客户统计', 'cl.p7': '7天', 'cl.p30': '30天', 'cl.pAll': '全部', 'cl.clients': '已记录客户', 'cl.loyal': '回头客（2次及以上）', 'cl.anon': '未留名的销售', 'cl.avgPerClient': '客户平均消费', 'cl.colClient': '客户', 'cl.colOrders': '购买次数', 'cl.colTotal': '累计消费', 'cl.colLast': '最近购买', 'cl.colType': '类型', 'cl.loyalBadge': '回头客', 'cl.newBadge': '新客户', 'cl.empty': '该时段没有留客户姓名的销售。收银时填写客户姓名即可统计。',
     'off.warn': '当前没有网络。销售记录仍保存在本设备上，但请不要刷新页面，否则页面可能无法再打开。', 'off.ok': '离线模式：销售记录仍保存在本设备上。',
     'tb.view': '查看小票 ↓', 'tb.back': '返回商品 ↑', 'tb.items': '件', 'tb.empty': '小票为空',
+    'nav.clients': '客户', 'common.save': '保存',
+    'cli.search': '搜索客户或微信…', 'cli.add': '+ 添加客户', 'cli.close': '关闭', 'cli.deleteCard': '删除客户档案',
+    'cli.name': '客户姓名', 'cli.wechat': '微信', 'cli.notes': '备注（尺码、喜好等）', 'cli.newTitle': '新客户',
+    'cli.totalClients': '客户数', 'cli.totalCA': '客户销售额（已收款）', 'cli.avgCA': '客户平均销售额', 'cli.avgBasket': '平均客单价',
+    'cli.colClient': '客户', 'cli.colOrders': '购买次数', 'cli.colCA': '累计销售额', 'cli.colAvg': '平均客单价', 'cli.colLast': '最近购买', 'cli.colCmd': '订单', 'cli.pending': '待取',
+    'cli.empty': '暂无客户。收银时填写客户姓名，或在此添加。', 'cli.fav': '常买商品', 'cli.favPay': '常用支付方式', 'cli.history': '最近购买', 'cli.ordersHist': '订单', 'cli.due': '尚欠款', 'cli.savedToast': '档案已保存 ✓', 'cli.needName': '请输入姓名', 'cli.exists': '该客户已存在', 'cli.deleteConfirm': '删除该客户档案吗？（销售记录会保留）', 'cli.noneYet': '暂无购买',
+    'rc.title': '收据', 'rc.shopName': '店名（显示在收据上）', 'rc.auto': '每次销售后显示收据', 'rc.share': '发送给客户', 'rc.save': '保存图片', 'rc.thanks': '谢谢惠顾！', 'rc.client': '客户', 'rc.payment': '支付方式', 'rc.received': '实收', 'rc.change': '找零', 'rc.total': '合计',
+    'produits.backupShare': '发送备份（邮件、微信…）',
     'dashboard.topProducts': '今日畅销商品', 'dashboard.fullHistory': '销售明细记录',
     'dashboard.emptySales': '暂无销售记录。', 'dashboard.tableProduct': '商品',
     'dashboard.tableQty': '数量', 'dashboard.tableRevenue': '营业额', 'dashboard.tableTime': '时间',
@@ -1188,6 +1259,8 @@ const PRODUCTS_KEY = 'boutique-products-v2';
 const CATEGORIES_KEY = 'boutique-categories-v1';
 const SIZES_KEY = 'boutique-sizes-v1';
 const ORDERS_KEY = 'boutique-orders-v1';
+const CLIENTS_KEY = 'boutique-clients-v1';
+let clientRecords = {};
 const PASSWORD_KEY = 'boutique-password-v1';
 const DEFAULT_SIZES = ['S','M','L','XL'];
 const SALES_KEY_PREFIX = 'boutique-demo-sales-';
@@ -1208,6 +1281,7 @@ function switchToPage(btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-' + btn.dataset.page).classList.add('active');
   if(btn.dataset.page === 'dashboard') renderDashboard();
+  if(btn.dataset.page === 'clients') renderClientsPage();
   if(btn.dataset.page === 'fond') renderFond();
   if(btn.dataset.page === 'produits') renderProductTable();
   if(btn.dataset.page === 'stock') renderStockPage();
@@ -1215,7 +1289,7 @@ function switchToPage(btn){
 }
 document.querySelectorAll('nav.main-tabs button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
-    if(btn.dataset.page === 'dashboard' && !dashboardUnlocked){
+    if((btn.dataset.page === 'dashboard' || btn.dataset.page === 'clients') && !dashboardUnlocked){
       requireManagerAccess(()=> switchToPage(btn));
       return;
     }
@@ -1355,6 +1429,16 @@ async function loadOrders(){
     const r = await window.storage.get(ORDERS_KEY, false);
     orders = r ? JSON.parse(r.value) : [];
   }catch(e){ orders = []; }
+}
+async function loadClients(){
+  try{
+    const r = await window.storage.get(CLIENTS_KEY, false);
+    clientRecords = r ? (JSON.parse(r.value) || {}) : {};
+  }catch(e){ clientRecords = {}; }
+}
+async function saveClients(){
+  try{ await window.storage.set(CLIENTS_KEY, JSON.stringify(clientRecords), false); }
+  catch(e){ console.error(e); showToast(t('common.saveError')); }
 }
 async function saveOrders(){
   try{ await window.storage.set(ORDERS_KEY, JSON.stringify(orders), false); }
@@ -2025,6 +2109,8 @@ document.getElementById('confirmBtn').addEventListener('click', async ()=>{
   renderHistory();
   renderSummary();
   showToast(stockWarning ? t('caisse.stockWarning') : t('caisse.saleConfirmed') + (change !== null ? ` ${t('caisse.saleWithChange')} ${fmt(change)}` : ''));
+  refreshClientDatalist();
+  if(rcAutoOn()) showReceipt(sales[sales.length-1]);
 });
 
 function itemsSummary(items){ return items.map(i=>`${i.qty}× ${escapeHtml(i.name)}`).join(', '); }
@@ -3020,6 +3106,7 @@ document.getElementById('backupExportBtn').addEventListener('click', async ()=>{
   data.items[CATEGORIES_KEY]=categories;
   data.items[SIZES_KEY]=sizes;
   data.items[ORDERS_KEY]=orders;
+  data.items[CLIENTS_KEY]=clientRecords;
   try{
     for(let i=0;i<localStorage.length;i++){
       const k=localStorage.key(i);
@@ -3313,6 +3400,253 @@ function renderDashboard(){
   renderClientStats();
 }
 
+// ---------- Clients ----------
+function normName(x){ return String(x||'').trim().toLowerCase(); }
+function isAnonName(x){
+  const k = normName(x);
+  return !k || ['client anonyme','匿名客户', normName(t('common.anonCustomer'))].includes(k);
+}
+function buildClientIndex(){
+  const map = {};
+  const get = (name)=>{
+    const k = normName(name);
+    return map[k] || (map[k] = { key:k, name:String(name).trim(), wechat:'', notes:'', n:0, total:0, last:'', pays:{}, prods:{}, buys:[], orders:[], pending:0, due:0 });
+  };
+  const byDate = getAllSalesByDate();
+  Object.keys(byDate).sort().forEach(d=>{
+    (byDate[d]||[]).forEach(sale=>{
+      if(isAnonName(sale.customer)) return;
+      const c = get(sale.customer);
+      c.n++; c.total += sale.total||0;
+      const when = sale.time || (d + 'T00:00:00');
+      if(!c.last || when > c.last) c.last = when;
+      c.pays[sale.payment] = (c.pays[sale.payment]||0) + 1;
+      (sale.items||[]).forEach(i=>{ c.prods[i.name] = (c.prods[i.name]||0) + (i.qty||1); });
+      c.buys.push({ time:when, total:sale.total||0, items:sale.items||[], payment:sale.payment });
+    });
+  });
+  (orders||[]).forEach(o=>{
+    if(isAnonName(o.customer)) return;
+    const c = get(o.customer);
+    c.orders.push(o);
+    if(o.status === 'pending'){ c.pending++; c.due += o.remaining||0; }
+    if(o.phone && !c.wechat) c.wechat = o.phone;
+  });
+  Object.entries(clientRecords||{}).forEach(([k,r])=>{
+    const c = map[k] || get(r.name || k);
+    if(r.name) c.name = r.name;
+    if(r.wechat) c.wechat = r.wechat;
+    c.notes = r.notes || '';
+  });
+  return Object.values(map).map(c=>{
+    c.avg = c.n ? c.total / c.n : 0;
+    return c;
+  });
+}
+function refreshClientDatalist(){
+  const dl = document.getElementById('clientNames');
+  if(!dl) return;
+  try{
+    dl.innerHTML = buildClientIndex().sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<option value="${escapeHtml(c.name)}"></option>`).join('');
+  }catch(e){}
+}
+function renderClientsPage(){
+  const all = buildClientIndex();
+  const q = normName(document.getElementById('cliSearch').value);
+  const list = all.filter(c=>!q || normName(c.name).includes(q) || normName(c.wechat).includes(q)).sort((a,b)=>b.total - a.total);
+  const sumCA = all.reduce((x,c)=>x+c.total,0);
+  const sumN = all.reduce((x,c)=>x+c.n,0);
+  const tile = (l,v)=>`<div class="mini-card"><div class="label">${l}</div><div class="value">${v}</div></div>`;
+  document.getElementById('cliTiles').innerHTML =
+    tile(t('cli.totalClients'), all.length) + tile(t('cli.totalCA'), fmt(sumCA)) +
+    tile(t('cli.avgCA'), fmt(all.length ? sumCA/all.length : 0)) + tile(t('cli.avgBasket'), fmt(sumN ? sumCA/sumN : 0));
+  const el = document.getElementById('cliTable');
+  if(!list.length){ el.innerHTML = `<div class="empty-cart">${t('cli.empty')}</div>`; return; }
+  const loc = currentLang==='zh' ? 'zh-CN' : 'fr-FR';
+  el.innerHTML = `<table><thead><tr><th>${t('cli.colClient')}</th><th class="num">${t('cli.colOrders')}</th><th class="num">${t('cli.colCA')}</th><th class="num">${t('cli.colAvg')}</th><th>${t('cli.colLast')}</th><th>${t('cli.colCmd')}</th></tr></thead><tbody>` +
+    list.map(c=>`<tr style="cursor:pointer;" data-key="${escapeHtml(c.key)}">
+      <td><strong>${escapeHtml(c.name)}</strong>${c.wechat ? `<div class="ci-meta">WeChat : ${escapeHtml(c.wechat)}</div>`:''}</td>
+      <td class="num">${c.n}</td><td class="num">${fmt(c.total)}</td><td class="num">${fmt(c.avg)}</td>
+      <td>${c.last ? new Date(c.last).toLocaleDateString(loc) : '—'}</td>
+      <td>${c.orders.length}${c.pending ? ` <span class="badge-pay">${c.pending} ${t('cli.pending')}</span>` : ''}</td></tr>`).join('') + '</tbody></table>';
+  el.querySelectorAll('tr[data-key]').forEach(tr=> tr.onclick = ()=> openClientModal(tr.dataset.key));
+}
+let cmKey = null;
+function openClientModal(key){
+  const nameRow = document.getElementById('cmNameRow');
+  const delBtn = document.getElementById('cmDelete');
+  cmKey = key;
+  if(!key){
+    document.getElementById('cmTitle').textContent = t('cli.newTitle');
+    nameRow.style.display = 'block';
+    document.getElementById('cmName').value = '';
+    document.getElementById('cmWechat').value = '';
+    document.getElementById('cmNotes').value = '';
+    document.getElementById('cmStats').innerHTML = '';
+    delBtn.style.display = 'none';
+  } else {
+    const c = buildClientIndex().find(x=>x.key===key);
+    if(!c) return;
+    const loc = currentLang==='zh' ? 'zh-CN' : 'fr-FR';
+    document.getElementById('cmTitle').textContent = c.name;
+    nameRow.style.display = 'none';
+    document.getElementById('cmWechat').value = c.wechat || '';
+    document.getElementById('cmNotes').value = c.notes || '';
+    delBtn.style.display = (clientRecords[key]) ? 'inline-block' : 'none';
+    const fav = Object.entries(c.prods).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([n,q])=>`${escapeHtml(n)} ×${q}`).join('<br>') || '—';
+    const favPay = Object.entries(c.pays).sort((a,b)=>b[1]-a[1])[0];
+    const buys = c.buys.slice().sort((a,b)=>b.time.localeCompare(a.time)).slice(0,8).map(b=>`<tr><td>${new Date(b.time).toLocaleDateString(loc)}</td><td>${itemsSummary(b.items)}</td><td class="num">${fmt(b.total)}</td></tr>`).join('');
+    const ords = c.orders.slice().reverse().slice(0,6).map(o=>`<tr><td>${o.createdAt ? new Date(o.createdAt).toLocaleDateString(loc) : '—'}</td><td>${ordersItemsSummary(o.items)}</td><td class="num">${fmt(o.total)}${(o.remaining||0)>0 ? `<div class="ci-meta" style="color:var(--loss);">${t('cli.due')} ${fmt(o.remaining)}</div>`:''}</td></tr>`).join('');
+    document.getElementById('cmStats').innerHTML = `
+      <div class="summary-bar" style="margin-bottom:10px;">
+        <div class="mini-card"><div class="label">${t('cli.colOrders')}</div><div class="value">${c.n}</div></div>
+        <div class="mini-card"><div class="label">${t('cli.colCA')}</div><div class="value">${fmt(c.total)}</div></div>
+        <div class="mini-card"><div class="label">${t('cli.colAvg')}</div><div class="value">${fmt(c.avg)}</div></div>
+      </div>
+      <div class="ci-meta" style="margin-bottom:6px;"><strong>${t('cli.favPay')} :</strong> ${favPay ? escapeHtml(favPay[0]) : '—'}</div>
+      <div class="ci-meta" style="margin-bottom:10px;"><strong>${t('cli.fav')} :</strong><br>${fav}</div>
+      ${buys ? `<div class="opt-label">${t('cli.history')}</div><table><tbody>${buys}</tbody></table>` : `<div class="ci-meta">${t('cli.noneYet')}</div>`}
+      ${ords ? `<div class="opt-label">${t('cli.ordersHist')}</div><table><tbody>${ords}</tbody></table>` : ''}`;
+  }
+  document.getElementById('clientModalOverlay').classList.add('show');
+}
+function closeClientModal(){ document.getElementById('clientModalOverlay').classList.remove('show'); }
+document.getElementById('cliAddBtn').addEventListener('click', ()=> openClientModal(null));
+document.getElementById('cliSearch').addEventListener('input', renderClientsPage);
+document.getElementById('cmClose').addEventListener('click', closeClientModal);
+document.getElementById('clientModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='clientModalOverlay') closeClientModal(); });
+document.getElementById('cmSave').addEventListener('click', async ()=>{
+  let key = cmKey, name;
+  if(!key){
+    name = document.getElementById('cmName').value.trim();
+    if(!name){ showToast(t('cli.needName')); return; }
+    key = normName(name);
+    if(buildClientIndex().some(c=>c.key===key)){ showToast(t('cli.exists')); return; }
+  } else {
+    name = (clientRecords[key] && clientRecords[key].name) || (buildClientIndex().find(c=>c.key===key) || {}).name || key;
+  }
+  clientRecords[key] = { name, wechat: document.getElementById('cmWechat').value.trim(), notes: document.getElementById('cmNotes').value.trim() };
+  await saveClients();
+  closeClientModal(); renderClientsPage(); refreshClientDatalist();
+  showToast(t('cli.savedToast'));
+});
+document.getElementById('cmDelete').addEventListener('click', async ()=>{
+  if(!cmKey || !(await askConfirm(t('cli.deleteConfirm')))) return;
+  delete clientRecords[cmKey];
+  await saveClients();
+  closeClientModal(); renderClientsPage(); refreshClientDatalist();
+});
+
+// ---------- Reçu ----------
+let rcSale = null, rcBlob = null;
+function rcShopName(){ try{ return localStorage.getItem('caisse-shopname') || ''; }catch(e){ return ''; } }
+function rcAutoOn(){ try{ return localStorage.getItem('caisse-receipt-auto') !== '0'; }catch(e){ return true; } }
+function rcWrap(ctx, text, maxW){
+  const out = []; let line = '';
+  for(const ch of String(text)){
+    if(ctx.measureText(line + ch).width > maxW && line){ out.push(line); line = ch.trim() ? ch : ''; }
+    else line += ch;
+  }
+  if(line) out.push(line);
+  return out.length ? out : [''];
+}
+function drawReceipt(sale, shop){
+  const W = 640, P = 36, inner = W - 2*P, font = '"Inter","PingFang SC","Microsoft YaHei",sans-serif';
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = 4000;
+  const ctx = cv.getContext('2d');
+  const loc = currentLang==='zh' ? 'zh-CN' : 'fr-FR';
+  const ops = []; let y = P;
+  const line = (txt, size, weight, align, color, gap)=>{ ops.push({txt,size,weight,align,color,y:y+size}); y += size + (gap||8); };
+  const rule = ()=>{ ops.push({rule:true, y:y+4}); y += 16; };
+  const pair = (l, r, size, weight)=>{ ops.push({pair:[l,r], size, weight, y:y+size}); y += size + 8; };
+  if(shop) line(shop, 30, '700', 'center', '#221F1D', 10);
+  line(new Date(sale.time).toLocaleString(loc, {dateStyle:'medium', timeStyle:'short'}), 16, '400', 'center', '#6B6560', 4);
+  if(!isAnonName(sale.customer)) line(t('rc.client') + ' : ' + sale.customer, 16, '400', 'center', '#6B6560', 4);
+  y += 6; rule();
+  ctx.font = `500 18px ${font}`;
+  sale.items.forEach(i=>{
+    const label = `${i.qty}× ${i.name}`;
+    const lines = rcWrap(ctx, label, inner - 130);
+    lines.forEach((l,idx)=>{ ops.push({txt:l, size:18, weight:'500', align:'left', color:'#221F1D', y:y+18}); if(idx===0) ops.push({txt:fmt(i.qty*i.price), size:18, weight:'500', align:'right', color:'#221F1D', y:y+18}); y += 26; });
+  });
+  rule();
+  pair(t('rc.total'), fmt(sale.total), 26, '700');
+  y += 4;
+  pair(t('rc.payment'), sale.payment, 16, '400');
+  if(sale.cashReceived != null){ pair(t('rc.received'), fmt(sale.cashReceived), 16, '400'); pair(t('rc.change'), fmt(sale.change||0), 16, '400'); }
+  y += 10; rule();
+  line(t('rc.thanks'), 18, '500', 'center', '#6E3A4E', 4);
+  const H = y + P;
+  const out = document.createElement('canvas'); out.width = W; out.height = H;
+  const c = out.getContext('2d');
+  c.fillStyle = '#FFFFFF'; c.fillRect(0,0,W,H);
+  ops.forEach(o=>{
+    if(o.rule){ c.strokeStyle = '#D9D2C5'; c.setLineDash([6,5]); c.beginPath(); c.moveTo(P,o.y); c.lineTo(W-P,o.y); c.stroke(); c.setLineDash([]); return; }
+    if(o.pair){
+      c.fillStyle = '#221F1D'; c.font = `${o.weight} ${o.size}px ${font}`;
+      c.textAlign = 'left'; c.fillText(o.pair[0], P, o.y); c.textAlign = 'right'; c.fillText(o.pair[1], W-P, o.y); return;
+    }
+    c.fillStyle = o.color; c.font = `${o.weight} ${o.size}px ${font}`; c.textAlign = o.align;
+    c.fillText(o.txt, o.align==='center' ? W/2 : (o.align==='right' ? W-P : P), o.y);
+  });
+  return out;
+}
+function showReceipt(sale){
+  rcSale = sale;
+  document.getElementById('rcShop').value = rcShopName();
+  document.getElementById('rcAuto').checked = rcAutoOn();
+  redrawReceipt();
+  document.getElementById('receiptOverlay').classList.add('show');
+}
+function redrawReceipt(){
+  if(!rcSale) return;
+  const cv = drawReceipt(rcSale, document.getElementById('rcShop').value.trim());
+  document.getElementById('rcImg').src = cv.toDataURL('image/png');
+  cv.toBlob(b=>{ rcBlob = b; }, 'image/png');
+}
+document.getElementById('rcShop').addEventListener('input', ()=>{
+  try{ localStorage.setItem('caisse-shopname', document.getElementById('rcShop').value.trim()); }catch(e){}
+  redrawReceipt();
+});
+document.getElementById('rcAuto').addEventListener('change', (e)=>{
+  try{ localStorage.setItem('caisse-receipt-auto', e.target.checked ? '1' : '0'); }catch(_){}
+});
+document.getElementById('rcClose').addEventListener('click', ()=> document.getElementById('receiptOverlay').classList.remove('show'));
+document.getElementById('receiptOverlay').addEventListener('click', (e)=>{ if(e.target.id==='receiptOverlay') e.target.classList.remove('show'); });
+document.getElementById('rcSave').addEventListener('click', ()=>{
+  if(rcBlob) saveFile('recu-' + new Date().toISOString().slice(0,16).replace(/[:T]/g,'-') + '.png', rcBlob, 'image/png');
+});
+document.getElementById('rcShare').addEventListener('click', async ()=>{
+  if(!rcBlob) return;
+  const file = new File([rcBlob], 'recu.png', {type:'image/png'});
+  try{
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file]}); return; }
+  }catch(e){ if(e && e.name === 'AbortError') return; }
+  saveFile('recu.png', rcBlob, 'image/png');
+});
+
+// ---------- Partage de la sauvegarde ----------
+document.getElementById('backupShareBtn').addEventListener('click', async ()=>{
+  const data={app:'caisse-boutique',version:1,items:{}};
+  data.items[PRODUCTS_KEY]=products; data.items[CATEGORIES_KEY]=categories; data.items[SIZES_KEY]=sizes;
+  data.items[ORDERS_KEY]=orders; data.items[CLIENTS_KEY]=clientRecords;
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k&&k.startsWith('caisse:')){
+        const kk=k.slice(7);
+        if(kk.startsWith(SALES_KEY_PREFIX)||kk.startsWith(FOND_KEY_PREFIX)) data.items[kk]=JSON.parse(localStorage.getItem(k));
+      }
+    }
+  }catch(e){}
+  const name='sauvegarde-caisse-'+new Date().toISOString().slice(0,10)+'.json';
+  const file=new File([JSON.stringify(data)], name, {type:'application/json'});
+  try{
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:name}); return; }
+  }catch(e){ if(e && e.name === 'AbortError') return; }
+  saveFile(name, file, 'application/json');
+});
+
 // ---------- Barre ticket (petit écran) ----------
 function ticketInView(){
   const el = document.getElementById('ticketPanel');
@@ -3528,6 +3862,7 @@ async function init(){
   await loadSales();
   await loadFond();
   await loadOrders();
+  await loadClients();
   await loadPassword();
   renderTabs();
   renderProductGrid();
@@ -3535,6 +3870,7 @@ async function init(){
   renderHistory();
   renderSummary();
   renderProductTable();
+  refreshClientDatalist();
 }
 init();
 </script>
