@@ -562,6 +562,13 @@
     <div class="pos-grid" id="ordGrid">
       <section class="panel">
         <p class="hint" data-i18n="commandes.hint">Pour les clients qui commandent et paient à l'avance, avant de venir récupérer leur article.</p>
+        <input type="text" id="orderProductSearch" data-i18n-placeholder="caisse.searchPlaceholder" placeholder="Rechercher un produit..." style="margin-bottom:10px;">
+        <div class="tabs" id="ordTabs"></div>
+        <div class="product-grid" id="ordProductGrid"></div>
+      </section>
+
+      <section class="panel" id="ordTicketPanel">
+        <h2 data-i18n="commandes.newOrderTitle">Nouvelle commande</h2>
         <div style="margin-bottom:10px;">
           <label data-i18n="commandes.customerLabel">Nom du client</label>
           <input type="text" id="ordCustomer" list="clientNames" autocomplete="off" data-i18n-placeholder="caisse.customerPlaceholder" placeholder="Ex : Mme Dupont" required>
@@ -577,13 +584,6 @@
           </div>
         </div>
 
-        <input type="text" id="orderProductSearch" data-i18n-placeholder="caisse.searchPlaceholder" placeholder="Rechercher un produit..." style="margin-bottom:10px;">
-        <div class="tabs" id="ordTabs"></div>
-        <div class="product-grid" id="ordProductGrid"></div>
-      </section>
-
-      <section class="panel" id="ordTicketPanel">
-        <h2 data-i18n="commandes.newOrderTitle">Nouvelle commande</h2>
         <div class="cart-list" id="ordCartList"></div>
         <div class="cart-total-row">
           <span class="tot-label" data-i18n="common.total">Total</span>
