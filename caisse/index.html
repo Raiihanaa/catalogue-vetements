@@ -389,6 +389,10 @@
           <label data-i18n="caisse.customerLabel">Nom du client (optionnel)</label>
           <input type="text" id="customerName" list="clientNames" autocomplete="off" data-i18n-placeholder="caisse.customerPlaceholder" placeholder="Ex : Mme Dupont">
         </div>
+        <div class="customer-field">
+          <label data-i18n="caisse.wechatLabel">WeChat du client (optionnel)</label>
+          <input type="text" id="customerWechat" autocomplete="off" data-i18n-placeholder="caisse.wechatPlaceholder" placeholder="ID WeChat">
+        </div>
         <div class="cart-list" id="cartList"></div>
         <div class="cart-total-row">
           <span class="tot-label" data-i18n="common.total">Total</span>
@@ -996,6 +1000,7 @@ const I18N = {
     'cli.empty': 'Aucun client pour le moment. Écris le nom du client à la caisse ou ajoute-le ici.', 'cli.fav': 'Produits préférés', 'cli.favPay': 'Paiement habituel', 'cli.history': 'Derniers achats', 'cli.ordersHist': 'Commandes', 'cli.due': 'Reste à payer', 'cli.savedToast': 'Fiche enregistrée ✓', 'cli.needName': 'Écris un nom', 'cli.exists': 'Ce client existe déjà', 'cli.deleteConfirm': 'Supprimer la fiche de ce client ? (ses ventes restent enregistrées)', 'cli.noneYet': 'Pas encore d\'achat',
     'rc.title': 'Reçu', 'rc.shopName': 'Nom de la boutique (sur le reçu)', 'rc.auto': 'Afficher le reçu après chaque vente', 'rc.share': 'Envoyer au client', 'rc.save': 'Enregistrer l\'image', 'rc.thanks': 'Merci de votre visite !', 'rc.client': 'Client', 'rc.payment': 'Paiement', 'rc.received': 'Reçu', 'rc.change': 'Rendu', 'rc.total': 'TOTAL',
     'produits.backupShare': 'Envoyer la sauvegarde (mail, WeChat…)',
+    'caisse.wechatLabel': 'WeChat du client (optionnel)', 'caisse.wechatPlaceholder': 'ID WeChat',
     'dashboard.topProducts': 'Top produits du jour', 'dashboard.fullHistory': 'Historique détaillé des ventes',
     'dashboard.emptySales': 'Aucune vente pour l\u2019instant.', 'dashboard.tableProduct': 'Produit',
     'dashboard.tableQty': 'Qté', 'dashboard.tableRevenue': 'CA', 'dashboard.tableTime': 'Heure',
@@ -1121,6 +1126,7 @@ const I18N = {
     'cli.empty': '暂无客户。收银时填写客户姓名，或在此添加。', 'cli.fav': '常买商品', 'cli.favPay': '常用支付方式', 'cli.history': '最近购买', 'cli.ordersHist': '订单', 'cli.due': '尚欠款', 'cli.savedToast': '档案已保存 ✓', 'cli.needName': '请输入姓名', 'cli.exists': '该客户已存在', 'cli.deleteConfirm': '删除该客户档案吗？（销售记录会保留）', 'cli.noneYet': '暂无购买',
     'rc.title': '收据', 'rc.shopName': '店名（显示在收据上）', 'rc.auto': '每次销售后显示收据', 'rc.share': '发送给客户', 'rc.save': '保存图片', 'rc.thanks': '谢谢惠顾！', 'rc.client': '客户', 'rc.payment': '支付方式', 'rc.received': '实收', 'rc.change': '找零', 'rc.total': '合计',
     'produits.backupShare': '发送备份（邮件、微信…）',
+    'caisse.wechatLabel': '客户微信（选填）', 'caisse.wechatPlaceholder': '微信号',
     'dashboard.topProducts': '今日畅销商品', 'dashboard.fullHistory': '销售明细记录',
     'dashboard.emptySales': '暂无销售记录。', 'dashboard.tableProduct': '商品',
     'dashboard.tableQty': '数量', 'dashboard.tableRevenue': '营业额', 'dashboard.tableTime': '时间',
@@ -2075,6 +2081,7 @@ document.getElementById('confirmBtn').addEventListener('click', async ()=>{
   const total = cartTotal();
   const cost = cart.reduce((s,c)=>s + c.cost*c.qty, 0);
   const customer = document.getElementById('customerName').value.trim() || t('common.anonCustomer');
+  const wechat = document.getElementById('customerWechat').value.trim();
 
   let cashReceived = null, change = null;
   if(selectedPayment === 'Cash'){
@@ -2084,13 +2091,18 @@ document.getElementById('confirmBtn').addEventListener('click', async ()=>{
   }
 
   sales.push({
-    customer: customer,
+    customer: customer, wechat: wechat,
     items: cart.map(c=>({ id:c.id, name:c.name, qty:c.qty, price:getEffectiveUnitPrice(c), cost:c.cost })),
     total: total, cost: cost, payment: selectedPayment,
     cashReceived: cashReceived, change: change,
     time: new Date().toISOString()
   });
   await saveSales();
+  if(wechat && !isAnonName(customer)){
+    const ck = normName(customer);
+    const rec = clientRecords[ck] || { name: customer.trim(), wechat:'', notes:'' };
+    if(rec.wechat !== wechat){ rec.wechat = wechat; clientRecords[ck] = rec; await saveClients(); }
+  }
 
   // decrement stock
   const stockWarning = applyStockDecrement(cart);
@@ -2101,6 +2113,7 @@ document.getElementById('confirmBtn').addEventListener('click', async ()=>{
   cart = [];
   selectedPayment = null;
   document.getElementById('customerName').value = '';
+  document.getElementById('customerWechat').value = '';
   document.getElementById('cashReceived').value = '';
   document.getElementById('cashExtra').classList.remove('show');
   document.querySelectorAll('.pay-btn').forEach(b=>b.classList.remove('selected'));
@@ -3420,6 +3433,7 @@ function buildClientIndex(){
       c.n++; c.total += sale.total||0;
       const when = sale.time || (d + 'T00:00:00');
       if(!c.last || when > c.last) c.last = when;
+      if(sale.wechat) c.wechat = sale.wechat;
       c.pays[sale.payment] = (c.pays[sale.payment]||0) + 1;
       (sale.items||[]).forEach(i=>{ c.prods[i.name] = (c.prods[i.name]||0) + (i.qty||1); });
       c.buys.push({ time:when, total:sale.total||0, items:sale.items||[], payment:sale.payment });
@@ -3536,6 +3550,20 @@ document.getElementById('cmDelete').addEventListener('click', async ()=>{
   await saveClients();
   closeClientModal(); renderClientsPage(); refreshClientDatalist();
 });
+
+// Pré-remplit le WeChat quand le client est déjà connu
+(function(){
+  const nameEl = document.getElementById('customerName'), wxEl = document.getElementById('customerWechat');
+  function fill(){
+    if(wxEl.value.trim()) return;
+    const k = normName(nameEl.value);
+    if(!k) return;
+    const c = buildClientIndex().find(x=>x.key===k);
+    if(c && c.wechat) wxEl.value = c.wechat;
+  }
+  nameEl.addEventListener('change', fill);
+  nameEl.addEventListener('input', ()=>{ if(buildClientIndex().some(x=>x.key===normName(nameEl.value))) fill(); });
+})();
 
 // ---------- Reçu ----------
 let rcSale = null, rcBlob = null;
