@@ -983,7 +983,7 @@ const I18N = {
     'commandes.emptyList': 'Aucune commande dans cette catégorie.', 'commandes.markDelivered': 'Marquer livrée',
     'commandes.filterPending': 'En attente', 'commandes.filterDelivered': 'Livrée', 'commandes.filterAll': 'Toutes',
     'commandes.tableClient': 'Client', 'commandes.tableItems': 'Articles', 'commandes.tableTotal': 'Total',
-    'commandes.tableDeposit': 'Acompte', 'commandes.tableRemaining': 'Reste', 'commandes.tableDate': 'Retrait prévu',
+    'commandes.tableDeposit': 'Acompte', 'commandes.tableRemaining': 'Reste', 'commandes.tableDate': 'Retrait prévu', 'commandes.tableCreated': 'Créée le', 'commandes.deliveredOn': 'Livrée le',
     'commandes.tableStatus': 'Statut', 'commandes.finalPaymentTitle': 'Solde à régler',
     'commandes.createdToast': 'Commande créée ✓', 'commandes.createdDepositToast': 'Commande créée — acompte de',
     'commandes.encaisse': 'encaissé', 'commandes.deliveredToast': 'Commande marquée comme livrée',
@@ -1111,7 +1111,7 @@ const I18N = {
     'commandes.emptyList': '该分类下暂无订单。', 'commandes.markDelivered': '标记为已交付',
     'commandes.filterPending': '待处理', 'commandes.filterDelivered': '已交付', 'commandes.filterAll': '全部',
     'commandes.tableClient': '客户', 'commandes.tableItems': '商品', 'commandes.tableTotal': '总计',
-    'commandes.tableDeposit': '定金', 'commandes.tableRemaining': '余额', 'commandes.tableDate': '预计取货',
+    'commandes.tableDeposit': '定金', 'commandes.tableRemaining': '余额', 'commandes.tableDate': '预计取货', 'commandes.tableCreated': '下单时间', 'commandes.deliveredOn': '取货时间',
     'commandes.tableStatus': '状态', 'commandes.finalPaymentTitle': '结清余款',
     'commandes.createdToast': '订单已创建 ✓', 'commandes.createdDepositToast': '订单已创建 — 已收定金',
     'commandes.encaisse': '', 'commandes.deliveredToast': '订单已标记为交付',
@@ -2437,19 +2437,21 @@ function renderOrdersList(){
     container.innerHTML = `<div class="empty-cart">${t('commandes.emptyList')}</div>`;
     return;
   }
-  let html = `<table><thead><tr><th>${t('commandes.tableClient')}</th><th>${t('commandes.tableItems')}</th><th class="num">${t('commandes.tableTotal')}</th><th class="num">${t('commandes.tableDeposit')}</th><th class="num">${t('commandes.tableRemaining')}</th><th>${t('commandes.tableDate')}</th><th>${t('commandes.tableStatus')}</th><th></th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th>${t('commandes.tableCreated')}</th><th>${t('commandes.tableClient')}</th><th>${t('commandes.tableItems')}</th><th class="num">${t('commandes.tableTotal')}</th><th class="num">${t('commandes.tableDeposit')}</th><th class="num">${t('commandes.tableRemaining')}</th><th>${t('commandes.tableDate')}</th><th>${t('commandes.tableStatus')}</th><th></th></tr></thead><tbody>`;
   visible.slice().reverse().forEach(o=>{
     const dateStr = o.expectedDate ? new Date(o.expectedDate + 'T00:00:00').toLocaleDateString(currentLang==='zh'?'zh-CN':'fr-FR') : '—';
     const hasBalance = (o.remaining||0) > 0;
     const statusLabel = o.status==='pending' ? t('commandes.filterPending') : t('commandes.filterDelivered');
+    const dtFmt = (iso)=> iso ? new Date(iso).toLocaleString(currentLang==='zh'?'zh-CN':'fr-FR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '—';
     html += `<tr>
+      <td>${dtFmt(o.createdAt)}</td>
       <td>${escapeHtml(o.customer)}${o.phone ? `<div class="ci-meta">${escapeHtml(o.phone)}</div>`:''}</td>
       <td>${ordersItemsSummary(o.items)}${o.notes ? `<div class="ci-meta">${escapeHtml(o.notes)}</div>`:''}</td>
       <td class="num">${fmt(o.total)}</td>
       <td class="num">${(o.depositPaid === 0) ? `<span class="badge-pay" style="color:var(--loss);">${t('commandes.unpaidBadge')}</span>` : fmt(o.depositPaid != null ? o.depositPaid : o.total)}</td>
       <td class="num" style="${hasBalance?'color:var(--loss); font-weight:700;':''}">${fmt(o.remaining||0)}</td>
       <td>${dateStr}</td>
-      <td><span class="badge-pay" style="${o.status==='pending'?'color:var(--gold); border-color:var(--gold);':'color:var(--profit); border-color:var(--profit);'}">${statusLabel}</span></td>
+      <td><span class="badge-pay" style="${o.status==='pending'?'color:var(--gold); border-color:var(--gold);':'color:var(--profit); border-color:var(--profit);'}">${statusLabel}</span>${o.status==='delivered' && o.deliveredAt ? `<div class="ci-meta">${t('commandes.deliveredOn')} ${dtFmt(o.deliveredAt)}</div>` : ''}</td>
       <td>${o.status==='pending' ? `<button class="edit-link" onclick="startDeliverOrder('${o.id}')">${t('commandes.markDelivered')}</button>` : ''}</td>
     </tr>`;
   });
