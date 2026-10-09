@@ -734,6 +734,7 @@
   <div class="footer-note" data-i18n="footer.note">Catalogue et ventes sauvegardés localement sur cet appareil.</div>
 </div>
 
+<div id="offlineBar" style="display:none; position:fixed; left:0; right:0; top:0; z-index:9999; padding:10px 16px; background:#B5473A; color:#fff; font-size:14px; font-weight:600; text-align:center;"></div>
 <div class="toast" id="toast"></div>
 
 <div class="modal-overlay" id="dlgOverlay">
@@ -915,6 +916,7 @@ const I18N = {
     'fond.emptyMovements': 'Aucun mouvement manuel aujourd\u2019hui.', 'fond.savedToast': 'Fond de caisse enregistré',
     'dashboard.avgBasket': 'Panier moyen', 'dashboard.paymentBreakdown': 'Répartition par mode de paiement',
     'cl.title': 'Statistiques clients', 'cl.p7': '7 jours', 'cl.p30': '30 jours', 'cl.pAll': 'Tout', 'cl.clients': 'Clients identifiés', 'cl.loyal': 'Clients fidèles (2 achats ou +)', 'cl.anon': 'Ventes sans nom', 'cl.avgPerClient': 'Dépense moyenne par client', 'cl.colClient': 'Client', 'cl.colOrders': 'Achats', 'cl.colTotal': 'Total dépensé', 'cl.colLast': 'Dernier achat', 'cl.colType': 'Type', 'cl.loyalBadge': 'Fidèle', 'cl.newBadge': 'Nouveau', 'cl.empty': 'Aucune vente avec un nom de client sur cette période. Écris le nom du client à la caisse pour suivre tes clients.',
+    'off.warn': 'Pas de connexion internet. Tes ventes restent enregistrées sur cet appareil, mais NE RECHARGE PAS la page : elle pourrait ne plus s\'ouvrir.', 'off.ok': 'Mode hors ligne : tes ventes restent enregistrées sur cet appareil.',
     'dashboard.topProducts': 'Top produits du jour', 'dashboard.fullHistory': 'Historique détaillé des ventes',
     'dashboard.emptySales': 'Aucune vente pour l\u2019instant.', 'dashboard.tableProduct': 'Produit',
     'dashboard.tableQty': 'Qté', 'dashboard.tableRevenue': 'CA', 'dashboard.tableTime': 'Heure',
@@ -1030,6 +1032,7 @@ const I18N = {
     'fond.emptyMovements': '今天没有手动变动记录。', 'fond.savedToast': '备用金已保存',
     'dashboard.avgBasket': '平均客单价', 'dashboard.paymentBreakdown': '支付方式分布',
     'cl.title': '客户统计', 'cl.p7': '7天', 'cl.p30': '30天', 'cl.pAll': '全部', 'cl.clients': '已记录客户', 'cl.loyal': '回头客（2次及以上）', 'cl.anon': '未留名的销售', 'cl.avgPerClient': '客户平均消费', 'cl.colClient': '客户', 'cl.colOrders': '购买次数', 'cl.colTotal': '累计消费', 'cl.colLast': '最近购买', 'cl.colType': '类型', 'cl.loyalBadge': '回头客', 'cl.newBadge': '新客户', 'cl.empty': '该时段没有留客户姓名的销售。收银时填写客户姓名即可统计。',
+    'off.warn': '当前没有网络。销售记录仍保存在本设备上，但请不要刷新页面，否则页面可能无法再打开。', 'off.ok': '离线模式：销售记录仍保存在本设备上。',
     'dashboard.topProducts': '今日畅销商品', 'dashboard.fullHistory': '销售明细记录',
     'dashboard.emptySales': '暂无销售记录。', 'dashboard.tableProduct': '商品',
     'dashboard.tableQty': '数量', 'dashboard.tableRevenue': '营业额', 'dashboard.tableTime': '时间',
@@ -3292,6 +3295,31 @@ function renderDashboard(){
   }
   renderClientStats();
 }
+
+// ---------- Hors ligne ----------
+(function(){
+  let swReady = false;
+  const bar = document.getElementById('offlineBar');
+  function upd(){
+    if(!bar) return;
+    if(!navigator.onLine){ bar.textContent = t(swReady ? 'off.ok' : 'off.warn'); bar.style.display = 'block'; }
+    else bar.style.display = 'none';
+  }
+  window.addEventListener('online', upd);
+  window.addEventListener('offline', upd);
+  window.addEventListener('beforeunload', (e)=>{
+    if(!navigator.onLine && !swReady){ e.preventDefault(); e.returnValue = ''; }
+  });
+  try{
+    if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
+      navigator.serviceWorker.register('sw.js')
+        .then(()=>navigator.serviceWorker.ready)
+        .then(()=>{ swReady = true; upd(); })
+        .catch(()=>{});
+    }
+  }catch(e){}
+  upd();
+})();
 
 // ---------- Statistiques clients ----------
 let clDays = 30;
