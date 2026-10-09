@@ -2142,9 +2142,11 @@ function renderHistory(){
     el.innerHTML = `<div class="empty-cart">${t('caisse.emptyHistory')}</div>`;
     return;
   }
-  let html = `<table><thead><tr><th>${t('commandes.tableClient')}</th><th>${t('commandes.tableItems')}</th><th class="num">${t('common.total')}</th><th>${t('commandes.paymentMethodLabel')}</th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th>${t('dashboard.tableTime')}</th><th>${t('commandes.tableClient')}</th><th>${t('commandes.tableItems')}</th><th class="num">${t('common.total')}</th><th>${t('commandes.paymentMethodLabel')}</th></tr></thead><tbody>`;
   sales.slice().reverse().forEach(s=>{
+    const timeStr = new Date(s.time).toLocaleTimeString(currentLang==='zh'?'zh-CN':'fr-FR', {hour:'2-digit', minute:'2-digit'});
     html += `<tr>
+      <td>${timeStr}</td>
       <td>${escapeHtml(s.customer)}</td>
       <td>${itemsSummary(s.items)}</td>
       <td class="num">${fmt(s.total)}</td>
