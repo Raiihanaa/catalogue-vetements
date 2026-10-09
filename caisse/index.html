@@ -311,12 +311,12 @@
   .product-tile .pname{ color:var(--ink); }
   input.inl, select.inl{ color:var(--ink); -webkit-text-fill-color:var(--ink); opacity:1; }
   .ticket-bar{ display:none; }
-  #ticketPanel{ align-self:start; }
-  @media (min-width:881px){ #ticketPanel{ position:sticky; top:12px; max-height:calc(100vh - 24px); overflow-y:auto; } }
+  #ticketPanel, #ordTicketPanel{ align-self:start; }
+  @media (min-width:881px){ #ticketPanel, #ordTicketPanel{ position:sticky; top:12px; max-height:calc(100vh - 24px); overflow-y:auto; } }
   @media (max-width:880px){
     .ticket-bar{ display:block; position:fixed; left:0; right:0; bottom:0; z-index:50; padding:10px 16px calc(10px + env(safe-area-inset-bottom, 0px)); background:var(--paper); border-top:1px solid var(--line); box-shadow:0 -4px 14px rgba(0,0,0,.08); }
     .ticket-bar button{ width:100%; display:flex; justify-content:space-between; align-items:center; gap:10px; padding:14px 16px; border:none; border-radius:12px; background:var(--aubergine); color:#fff; font-family:inherit; font-size:15px; font-weight:600; cursor:pointer; }
-    #page-caisse{ padding-bottom:84px; }
+    #page-caisse, #page-commandes{ padding-bottom:84px; }
   }
   .color-option-grid{ display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
   .color-option{
@@ -553,7 +553,13 @@
 
   <!-- ================= PAGE COMMANDES ================= -->
   <div class="page" id="page-commandes">
-    <div class="pos-grid">
+    <div class="ticket-bar" id="ordTicketBar">
+      <button type="button" id="ordTicketBarBtn">
+        <span id="otbInfo"></span>
+        <span id="otbAction"></span>
+      </button>
+    </div>
+    <div class="pos-grid" id="ordGrid">
       <section class="panel">
         <p class="hint" data-i18n="commandes.hint">Pour les clients qui commandent et paient à l'avance, avant de venir récupérer leur article.</p>
         <div style="margin-bottom:10px;">
@@ -576,7 +582,7 @@
         <div class="product-grid" id="ordProductGrid"></div>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="ordTicketPanel">
         <h2 data-i18n="commandes.newOrderTitle">Nouvelle commande</h2>
         <div class="cart-list" id="ordCartList"></div>
         <div class="cart-total-row">
@@ -991,6 +997,7 @@ const I18N = {
     'dashboard.avgBasket': 'Panier moyen', 'dashboard.paymentBreakdown': 'Répartition par mode de paiement',
     'cl.title': 'Statistiques clients', 'cl.p7': '7 jours', 'cl.p30': '30 jours', 'cl.pAll': 'Tout', 'cl.clients': 'Clients identifiés', 'cl.loyal': 'Clients fidèles (2 achats ou +)', 'cl.anon': 'Ventes sans nom', 'cl.avgPerClient': 'Dépense moyenne par client', 'cl.colClient': 'Client', 'cl.colOrders': 'Achats', 'cl.colTotal': 'Total dépensé', 'cl.colLast': 'Dernier achat', 'cl.colType': 'Type', 'cl.loyalBadge': 'Fidèle', 'cl.newBadge': 'Nouveau', 'cl.empty': 'Aucune vente avec un nom de client sur cette période. Écris le nom du client à la caisse pour suivre tes clients.',
     'off.warn': 'Pas de connexion internet. Tes ventes restent enregistrées sur cet appareil, mais NE RECHARGE PAS la page : elle pourrait ne plus s\'ouvrir.', 'off.ok': 'Mode hors ligne : tes ventes restent enregistrées sur cet appareil.',
+    'tb.emptyOrder': 'Commande vide',
     'tb.view': 'Voir le ticket ↓', 'tb.back': 'Retour aux produits ↑', 'tb.items': 'article(s)', 'tb.empty': 'Ticket vide',
     'nav.clients': 'Clients', 'common.save': 'Enregistrer',
     'cli.search': 'Rechercher un client ou un WeChat...', 'cli.add': '+ Ajouter un client', 'cli.close': 'Fermer', 'cli.deleteCard': 'Supprimer la fiche',
@@ -1117,6 +1124,7 @@ const I18N = {
     'dashboard.avgBasket': '平均客单价', 'dashboard.paymentBreakdown': '支付方式分布',
     'cl.title': '客户统计', 'cl.p7': '7天', 'cl.p30': '30天', 'cl.pAll': '全部', 'cl.clients': '已记录客户', 'cl.loyal': '回头客（2次及以上）', 'cl.anon': '未留名的销售', 'cl.avgPerClient': '客户平均消费', 'cl.colClient': '客户', 'cl.colOrders': '购买次数', 'cl.colTotal': '累计消费', 'cl.colLast': '最近购买', 'cl.colType': '类型', 'cl.loyalBadge': '回头客', 'cl.newBadge': '新客户', 'cl.empty': '该时段没有留客户姓名的销售。收银时填写客户姓名即可统计。',
     'off.warn': '当前没有网络。销售记录仍保存在本设备上，但请不要刷新页面，否则页面可能无法再打开。', 'off.ok': '离线模式：销售记录仍保存在本设备上。',
+    'tb.emptyOrder': '订单为空',
     'tb.view': '查看小票 ↓', 'tb.back': '返回商品 ↑', 'tb.items': '件', 'tb.empty': '小票为空',
     'nav.clients': '客户', 'common.save': '保存',
     'cli.search': '搜索客户或微信…', 'cli.add': '+ 添加客户', 'cli.close': '关闭', 'cli.deleteCard': '删除客户档案',
@@ -3675,29 +3683,39 @@ document.getElementById('backupShareBtn').addEventListener('click', async ()=>{
   saveFile(name, file, 'application/json');
 });
 
-// ---------- Barre ticket (petit écran) ----------
-function ticketInView(){
-  const el = document.getElementById('ticketPanel');
+// ---------- Barre ticket (petit écran) : caisse et commandes ----------
+const TICKET_BARS = [
+  { info:'tbInfo', act:'tbAction', btn:'ticketBarBtn', panel:'ticketPanel', grid:'posGrid', items:()=>cart, total:()=>cartTotal(), empty:'tb.empty' },
+  { info:'otbInfo', act:'otbAction', btn:'ordTicketBarBtn', panel:'ordTicketPanel', grid:'ordGrid', items:()=>orderCart, total:()=>orderCartTotal(), empty:'tb.emptyOrder' }
+];
+function barInView(cfg){
+  const el = document.getElementById(cfg.panel);
   if(!el) return false;
   const r = el.getBoundingClientRect();
   return r.top < window.innerHeight * 0.55 && r.bottom > 0;
 }
 function updateTicketBar(){
-  const info = document.getElementById('tbInfo'), act = document.getElementById('tbAction');
-  if(!info || !act) return;
-  const n = cart.reduce((x,c)=>x + c.qty, 0);
-  info.textContent = n ? `🧾 ${n} ${t('tb.items')} · ${fmt(cartTotal())}` : `🧾 ${t('tb.empty')}`;
-  act.textContent = ticketInView() ? t('tb.back') : t('tb.view');
+  TICKET_BARS.forEach(cfg=>{
+    const info = document.getElementById(cfg.info), act = document.getElementById(cfg.act);
+    if(!info || !act) return;
+    const n = cfg.items().reduce((x,c)=>x + c.qty, 0);
+    info.textContent = n ? `🧾 ${n} ${t('tb.items')} · ${fmt(cfg.total())}` : `🧾 ${t(cfg.empty)}`;
+    act.textContent = barInView(cfg) ? t('tb.back') : t('tb.view');
+  });
 }
 (function(){
   const _rc = renderCart;
   renderCart = function(){ const r = _rc.apply(this, arguments); updateTicketBar(); return r; };
+  const _ro = renderOrderCart;
+  renderOrderCart = function(){ const r = _ro.apply(this, arguments); updateTicketBar(); return r; };
   let raf = null;
   window.addEventListener('scroll', ()=>{ if(raf) return; raf = requestAnimationFrame(()=>{ raf = null; updateTicketBar(); }); }, {passive:true});
   window.addEventListener('resize', updateTicketBar);
-  document.getElementById('ticketBarBtn').addEventListener('click', ()=>{
-    if(ticketInView()){ document.getElementById('posGrid').scrollIntoView({behavior:'smooth', block:'start'}); }
-    else { document.getElementById('ticketPanel').scrollIntoView({behavior:'smooth', block:'start'}); }
+  TICKET_BARS.forEach(cfg=>{
+    document.getElementById(cfg.btn).addEventListener('click', ()=>{
+      const target = barInView(cfg) ? cfg.grid : cfg.panel;
+      document.getElementById(target).scrollIntoView({behavior:'smooth', block:'start'});
+    });
   });
   updateTicketBar();
 })();
