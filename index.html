@@ -102,6 +102,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .card .price { padding: 10px 12px 0; font-size: 15px; font-weight: 700; color: var(--accent); }
   .card .price .price-row { display: flex; justify-content: space-between; font-size: 13px; line-height: 1.6; }
   .card .price .price-row span:first-child { font-weight: 500; opacity: .8; }
+  .card .price .price-note { font-size: 10.5px; font-weight: 400; font-style: italic; opacity: .65; margin-top: 2px; }
   .card .del {
     position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 50%;
     background: rgba(20,16,10,0.6); color: #fff; border: none; font-size: 13px; cursor: pointer;
@@ -702,6 +703,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         } else {
           priceEl.textContent = im.prix + ' €';
         }
+        const note = document.createElement('div');
+        note.className = 'price-note';
+        note.textContent = 'Prix indicatif (estimation), peut varier';
+        priceEl.appendChild(note);
       }
 
       const meta = document.createElement('div');
