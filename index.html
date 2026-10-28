@@ -334,6 +334,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .home-cta { font-size: 13.5px; font-weight: 600; color: var(--accent, #a8552b); }
   .home-cta span { font-weight: 400; opacity: .8; }
   @media (max-width: 560px) { .grid.home-grid { grid-template-columns: 1fr 1fr; gap: 12px; } .home-name { font-size: 15px; } .home-subs { display: none; } .home-info { padding: 10px 12px 12px; } .home-cta { font-size: 12px; } }
+  .home-tile.featured { border: 2px solid var(--accent, #a8552b); }
 </style>
 </head>
 <body>
@@ -482,6 +483,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <button class="small" id="clearAllImagesBtn" style="color:var(--danger); border-color:var(--danger);">🗑️ Vider toutes les images</button>
   </div>
 
+  <h2>⭐ Mes favoris → tête d'affiche</h2>
+  <div class="admin-section">
+    <p class="hint">Mets des articles en favoris (cœur), puis clique ici et colle le texte copié dans ta conversation avec Claude : il les mettra en tête d'affiche.</p>
+    <button class="primary" id="exportLikesBtn">📋 Copier mes favoris</button>
+    <textarea id="exportLikesBox" readonly style="display:none;width:100%;min-height:90px;margin-top:8px;font-size:11px;"></textarea>
+  </div>
+
   <h2>Publier tes changements</h2>
   <div class="admin-section">
     <p class="hint">Ce fichier est autonome : pour que tes changements soient visibles par les autres, télécharge la version à jour et remets-la en ligne à la place de l'ancienne (même nom de fichier, même emplacement).</p>
@@ -583,7 +591,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function findCategory(name) { return CATALOG.categories.find(function (c) { return c.name === name; }); }
   function findType(cat, name) { return cat && (cat.subcategories || []).find(function (s) { return s.name === name; }); }
 
+  const FEATURED = new Set(CATALOG.featured || []);
   function matchesFilter(im) {
+    if (activeCategory === '__featured__' && !searchQuery) return FEATURED.has(im.id);
     if (searchQuery) {
       const haystack = normalizeText([im.name, im.category, im.subcategory, im.brand].filter(Boolean).join(' '));
       return haystack.indexOf(searchQuery) !== -1;
@@ -626,6 +636,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     all.innerHTML = 'Accueil';
     all.addEventListener('click', function () { activeCategory = '__all__'; activeSubcategory = '__all__'; activeBrand = '__all__'; renderAll(); });
     tabsEl.appendChild(all);
+    if (FEATURED.size) {
+      const ft = document.createElement('div');
+      ft.className = 'tab' + (activeCategory === '__featured__' ? ' active' : '');
+      ft.innerHTML = '⭐ Coups de cœur <span class="count">' + FEATURED.size + '</span>';
+      ft.addEventListener('click', function () { activeCategory = '__featured__'; activeSubcategory = '__all__'; activeBrand = '__all__'; renderAll(); });
+      tabsEl.appendChild(ft);
+    }
 
     CATALOG.categories.forEach(function (cat) {
       const t = document.createElement('div');
@@ -701,8 +718,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     gridEl.innerHTML = '';
     gridEl.classList.add('home-grid');
     emptyMsg.style.display = 'none';
-    CATALOG.categories.forEach(function (cat) {
-      const items = CATALOG.images.filter(function (im) { return im.category === cat.name; });
+    const homeCats = CATALOG.categories.slice();
+    if (FEATURED.size) homeCats.unshift({ name: '⭐ Coups de cœur', subcategories: [], __featured: true });
+    homeCats.forEach(function (cat) {
+      const items = cat.__featured ? CATALOG.images.filter(function (im) { return FEATURED.has(im.id); }) : CATALOG.images.filter(function (im) { return im.category === cat.name; });
       if (!items.length) return;
       // Aperçu : une photo par type quand c'est possible, pour montrer la variété
       const picks = []; const seenSub = {};
@@ -712,7 +731,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       }
       const tile = document.createElement('button');
       tile.type = 'button';
-      tile.className = 'home-tile';
+      tile.className = 'home-tile' + (cat.__featured ? ' featured' : '');
       const mosaic = document.createElement('div');
       mosaic.className = 'home-mosaic';
       picks.slice(0, 4).forEach(function (im) {
@@ -723,13 +742,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       });
       const info = document.createElement('div');
       info.className = 'home-info';
-      const subs = (cat.subcategories || []).map(function (s) { return s.name; }).slice(0, 5).join(' · ');
+      const subs = cat.__featured ? 'Notre sélection du moment' : (cat.subcategories || []).map(function (s) { return s.name; }).slice(0, 5).join(' · ');
       info.innerHTML = '<div class="home-name">' + escapeHtml(cat.name) + '</div>' +
         '<div class="home-subs">' + escapeHtml(subs) + '</div>' +
         '<div class="home-cta">Découvrir <span>' + items.length + ' articles</span> →</div>';
       tile.appendChild(mosaic); tile.appendChild(info);
       tile.addEventListener('click', function () {
-        activeCategory = cat.name; activeSubcategory = '__all__'; activeBrand = '__all__';
+        activeCategory = cat.__featured ? '__featured__' : cat.name; activeSubcategory = '__all__'; activeBrand = '__all__';
         renderAll(); window.scrollTo({ top: 0, behavior: 'smooth' });
       });
       gridEl.appendChild(tile);
@@ -739,7 +758,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function renderGrid() {
     if (activeCategory === '__all__' && !searchQuery) { renderHome(); return; }
     gridEl.classList.remove('home-grid');
-    const list = CATALOG.images.filter(matchesFilter);
+    const list = CATALOG.images.filter(matchesFilter).sort(function (a, b) { return (FEATURED.has(b.id) ? 1 : 0) - (FEATURED.has(a.id) ? 1 : 0); });
     gridEl.innerHTML = '';
     emptyMsg.style.display = list.length === 0 ? 'block' : 'none';
 
@@ -1681,6 +1700,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     downloadBanner.classList.add('show');
   }
 
+
+  (function () {
+    const b = document.getElementById('exportLikesBtn'); if (!b) return;
+    b.addEventListener('click', function () {
+      const ids = Array.from(LIKES);
+      const txt = 'FAVORIS ' + (CATALOG.title || '') + ' (' + ids.length + ') : ' + ids.join(',');
+      const box = document.getElementById('exportLikesBox'); box.style.display = 'block'; box.value = txt; box.select();
+      const done = function () { b.textContent = '✅ Copié (' + ids.length + ' favoris) — colle-le à Claude'; };
+      if (navigator.clipboard) navigator.clipboard.writeText(txt).then(done, done); else { try { document.execCommand('copy'); } catch (e) {} done(); }
+    });
+  })();
   renderAll();
 })();
 </script>
