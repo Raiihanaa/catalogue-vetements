@@ -424,9 +424,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="admin-row">
         <a class="pay-btn pay-paypal" id="payPaypal" target="_blank" rel="noopener" style="display:none;">PayPal</a>
         <a class="pay-btn pay-revolut" id="payRevolut" target="_blank" rel="noopener" style="display:none;">Revolut</a>
-        <a class="pay-btn pay-card" id="payCard" target="_blank" rel="noopener" style="display:none;">Carte bancaire</a>
       </div>
-      <p class="pay-note pay-small">La carte bancaire se règle via PayPal, sans besoin de compte PayPal.</p>
     </div>
   </div>
 </div>
@@ -1454,7 +1452,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // === Moyens de paiement : renseigner les liens ici (laisser vide = bouton masqué) ===
   const PAYMENT_LINKS = { paypal: '', revolut: '', card: '' };
   (function initPayment() {
-    const map = { paypal: 'payPaypal', revolut: 'payRevolut', card: 'payCard' };
+    const map = { paypal: 'payPaypal', revolut: 'payRevolut' };
     const cardLink = PAYMENT_LINKS.card || PAYMENT_LINKS.paypal;
     let any = false;
     Object.keys(map).forEach(function (k) {
