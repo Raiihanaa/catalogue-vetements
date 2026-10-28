@@ -636,13 +636,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     all.innerHTML = 'Accueil';
     all.addEventListener('click', function () { activeCategory = '__all__'; activeSubcategory = '__all__'; activeBrand = '__all__'; renderAll(); });
     tabsEl.appendChild(all);
-    if (FEATURED.size) {
-      const ft = document.createElement('div');
-      ft.className = 'tab' + (activeCategory === '__featured__' ? ' active' : '');
-      ft.innerHTML = '⭐ Coups de cœur <span class="count">' + FEATURED.size + '</span>';
-      ft.addEventListener('click', function () { activeCategory = '__featured__'; activeSubcategory = '__all__'; activeBrand = '__all__'; renderAll(); });
-      tabsEl.appendChild(ft);
-    }
 
     CATALOG.categories.forEach(function (cat) {
       const t = document.createElement('div');
@@ -719,13 +712,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     gridEl.classList.add('home-grid');
     emptyMsg.style.display = 'none';
     const homeCats = CATALOG.categories.slice();
-    if (FEATURED.size) homeCats.unshift({ name: '⭐ Coups de cœur', subcategories: [], __featured: true });
     homeCats.forEach(function (cat) {
       const items = cat.__featured ? CATALOG.images.filter(function (im) { return FEATURED.has(im.id); }) : CATALOG.images.filter(function (im) { return im.category === cat.name; });
       if (!items.length) return;
       // Aperçu : une photo par type quand c'est possible, pour montrer la variété
       const picks = []; const seenSub = {};
-      items.slice().reverse().forEach(function (im) { if (picks.length < 4 && !seenSub[im.subcategory]) { seenSub[im.subcategory] = 1; picks.push(im); } });
+      items.forEach(function (im) { if (picks.length < 4 && FEATURED.has(im.id)) picks.push(im); });
+      items.slice().reverse().forEach(function (im) { if (picks.length < 4 && !seenSub[im.subcategory] && picks.indexOf(im) === -1) { seenSub[im.subcategory] = 1; picks.push(im); } });
       for (let k = 0; picks.length < 4 && k < items.length; k += Math.max(1, Math.floor(items.length / 5))) {
         if (picks.indexOf(items[k]) === -1) picks.push(items[k]);
       }
