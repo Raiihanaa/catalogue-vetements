@@ -10,6 +10,17 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <!-- End Google Tag Manager -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Mode luxe : doudounes, mailles, sneakers et sacs. Plus de 1 200 articles, plusieurs coloris, livraison DHL 10 à 15 jours.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Novachinaaa">
+<meta property="og:title" content="Novachinaaa – Catalogue">
+<meta property="og:description" content="Mode luxe : doudounes, mailles, sneakers et sacs. Plus de 1 200 articles, plusieurs coloris, livraison DHL 10 à 15 jours.">
+<meta property="og:url" content="https://raiihanaa.github.io/catalogue-vetements/marque/">
+<meta property="og:image" content="https://raiihanaa.github.io/catalogue-vetements/og-nova.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://raiihanaa.github.io/catalogue-vetements/og-nova.jpg">
 <title>Novachinaaa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -301,6 +312,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .cat-pw { font: inherit; font-size: 13px; padding: 8px 12px; border-radius: 8px; border: 1px dashed var(--border); background: transparent; color: var(--text); cursor: pointer; }
   .cat-pw span { margin-left: 6px; color: var(--accent); font-weight: 600; }
   .cat-open { font-size: 14px; font-weight: 600; padding: 9px 14px; border-radius: 8px; background: var(--accent); color: #fff; text-decoration: none; }
+  .info-page { line-height: 1.55; }
+  .info-page h2 { margin: 0 0 10px; font-size: 20px; }
+  .info-page section { border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin-bottom: 12px; background: var(--surface); }
+  .info-page h3 { margin: 0 0 6px; font-size: 16px; }
+  .info-page ul, .info-page ol { margin: 0; padding-left: 20px; font-size: 14px; }
+  .info-page li { margin-bottom: 4px; }
+  .info-page p { margin: 0; font-size: 14px; }
 </style>
 </head>
 <body>
@@ -632,6 +650,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       tabsEl.appendChild(t);
     });
 
+    const inf = document.createElement('div');
+    inf.className = 'tab' + (activeCategory === '__infos__' ? ' active' : '');
+    inf.innerHTML = 'ℹ️ Infos';
+    inf.addEventListener('click', function () { activeCategory = '__infos__'; activeSubcategory = '__all__'; activeBrand = '__all__'; renderAll(); });
+    tabsEl.appendChild(inf);
+
     const cats = document.createElement('div');
     cats.className = 'tab' + (activeCategory === '__catalogues__' ? ' active' : '');
     cats.innerHTML = '📚 Catalogues';
@@ -698,6 +722,31 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       subSubTabsEl.style.display = 'none';
       subSubTabsEl.innerHTML = '';
     }
+  }
+
+  function renderInfos() {
+    gridEl.innerHTML = '';
+    gridEl.classList.remove('home-grid');
+    gridEl.classList.add('cat-list');
+    emptyMsg.style.display = 'none';
+    const box = document.createElement('div');
+    box.className = 'info-page';
+    box.innerHTML =
+      '<h2>ℹ️ Infos pratiques</h2>' +
+      '<section><h3>🚚 Livraison</h3><ul>' +
+        '<li>Délai standard : <b>10 à 15 jours</b>, envoi par <b>DHL</b>.</li>' +
+        '<li>Livraison <b>express en 1 semaine</b> possible (supplément, me demander le tarif).</li>' +
+      '</ul></section>' +
+      '<section><h3>🛍️ Comment commander ?</h3><ol>' +
+        '<li>Ajoute les articles qui te plaisent au <b>panier</b> (choisis la taille, le coloris et, pour les sacs, la qualité).</li>' +
+        '<li>Clique sur <b>« Envoyer ma sélection »</b> et envoie-la-moi sur Snapchat ou WhatsApp.</li>' +
+        '<li>Je <b>valide ta sélection</b> et je t\'envoie le <b>prix total</b>.</li>' +
+        '<li>Tu paies avec le moyen de paiement de ton choix, puis tu envoies tes coordonnées de livraison.</li>' +
+      '</ol></section>' +
+      '<section><h3>💳 Paiement</h3><p>PayPal (carte bancaire acceptée via PayPal, sans compte) ou Revolut.</p></section>' +
+      '<section><h3>🏷️ Revendeurs</h3><p>Commandes revendeur et <b>prix de gros</b> disponibles : contacte-moi directement.</p></section>' +
+      '<section><h3>ℹ️ Bon à savoir</h3><p>Les prix sont indicatifs (estimation) et peuvent varier. Plusieurs coloris sont souvent disponibles. Tu ne trouves pas un article ? Contacte-moi, je te le trouve.</p></section>';
+    gridEl.appendChild(box);
   }
 
   function renderCatalogues() {
@@ -777,6 +826,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function renderGrid() {
     gridEl.classList.remove('cat-list');
     if (activeCategory === '__catalogues__' && !searchQuery) { renderCatalogues(); return; }
+    if (activeCategory === '__infos__' && !searchQuery) { renderInfos(); return; }
     if (activeCategory === '__all__' && !searchQuery) { renderHome(); return; }
     gridEl.classList.remove('home-grid');
     const list = CATALOG.images.filter(matchesFilter).sort(function (a, b) { return (FEATURED.has(b.id) ? 1 : 0) - (FEATURED.has(a.id) ? 1 : 0); });
