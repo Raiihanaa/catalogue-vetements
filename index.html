@@ -638,6 +638,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return url;
   }
 
+  function thumbUrl(im) {
+    const u = im.url || '';
+    const k = u.indexOf('/catalogue-vetements/');
+    if (k === -1) return u;
+    const name = u.slice(k + 21);
+    if (name.indexOf('/') !== -1) return u;
+    return u.slice(0, k + 21) + 'thumbs/' + name.replace(/\.[a-z0-9]+$/i, '') + '.jpg';
+  }
+  function setThumb(imgEl, im) {
+    imgEl.src = thumbUrl(im);
+    imgEl.addEventListener('error', function onErr() { imgEl.removeEventListener('error', onErr); if (imgEl.src !== im.url) imgEl.src = im.url; });
+  }
   function findCategory(name) { return CATALOG.categories.find(function (c) { return c.name === name; }); }
   function findType(cat, name) { return cat && (cat.subcategories || []).find(function (s) { return s.name === name; }); }
 
@@ -849,7 +861,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       mosaic.className = 'home-mosaic';
       picks.slice(0, 4).forEach(function (im) {
         const img = document.createElement('img');
-        img.src = im.url; img.loading = 'lazy'; img.alt = '';
+        setThumb(img, im); img.loading = 'lazy'; img.alt = '';
         img.onload = function () { img.classList.add('loaded'); };
         mosaic.appendChild(img);
       });
@@ -884,11 +896,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       const imgwrap = document.createElement('div');
       imgwrap.className = 'imgwrap';
       const imageEl = document.createElement('img');
-      imageEl.src = im.url;
       imageEl.loading = 'lazy';
+      imageEl.decoding = 'async';
       imageEl.alt = im.name || '';
       imageEl.onload = function () { imageEl.classList.add('loaded'); };
-      imageEl.onerror = function () { imgwrap.innerHTML = '<div class="broken">Image indisponible</div>'; };
+      let triedFull = false;
+      imageEl.onerror = function () { if (!triedFull) { triedFull = true; imageEl.src = im.url; return; } imgwrap.innerHTML = '<div class="broken">Image indisponible</div>'; };
+      imageEl.src = thumbUrl(im);
       imgwrap.appendChild(imageEl);
       imgwrap.addEventListener('click', function () { openLightbox(im.url); });
 
@@ -1169,7 +1183,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       const row = document.createElement('div');
       row.className = 'cart-item';
       const thumb = document.createElement('img');
-      thumb.src = im.url;
+      setThumb(thumb, im);
       thumb.alt = '';
       const name = document.createElement('div');
       name.className = 'cart-item-name';
