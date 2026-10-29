@@ -155,6 +155,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   }
   .card .heart:hover { transform: scale(1.1); }
   .card .heart.active { background: #b3413a; color: #fff; }
+  .card.card-running { border-color: #9cc5b2; background: #f0f7f3; }
+  .card.card-running .imgwrap { background: #e6f1eb; }
+  body.admin-mode .run-badge { top: 38px; }
+  .run-badge { position: absolute; top: 10px; right: 10px; background: #2f7d63; color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; pointer-events: none; }
   .new-badge {
     position: absolute; bottom: 8px; left: 8px; background: var(--text); color: #fff;
     font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
@@ -926,6 +930,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     list.forEach(function (im) {
       const card = document.createElement('div');
       card.className = 'card';
+      const isRunning = im.category === 'Chaussures' && ['Salomon', 'ON', 'Asics', 'Nike', 'Hoka', 'New Balance'].indexOf(im.brand) !== -1;
+      if (isRunning) card.classList.add('card-running');
       const imgwrap = document.createElement('div');
       imgwrap.className = 'imgwrap';
       const imageEl = document.createElement('img');
@@ -951,6 +957,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         renderFavCount();
       });
       imgwrap.appendChild(heart);
+      if (isRunning) { const rb = document.createElement('span'); rb.className = 'run-badge'; rb.textContent = 'Running'; imgwrap.appendChild(rb); }
 
 
       let priceEl = null;
