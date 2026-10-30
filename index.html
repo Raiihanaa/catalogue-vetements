@@ -648,12 +648,31 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return CART_DETAILS[id] || { qty: 1, note: '' };
   }
 
+  // === Statistiques (clics, favoris, panier…) : Google Tag Manager + GoatCounter si configuré ===
+  const SITE_TAG = 'bigh';
+  function imName(id) { const im = CATALOG.images.find(function (x) { return x.id === id; }); return im ? (im.name || id) : id; }
+  function track(name, label) {
+    try { window.dataLayer = window.dataLayer || []; window.dataLayer.push({ event: 'site_' + name, site: SITE_TAG, label: label || '' }); } catch (e) {}
+    try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: SITE_TAG + '-' + name + (label ? ' : ' + String(label).slice(0, 120) : ''), title: label || name, event: true }); } catch (e) {}
+  }
+  document.addEventListener('click', function (e) {
+    const a = e.target.closest ? e.target.closest('a, button') : null; if (!a) return;
+    if (a.href && a.href.indexOf('snapchat.com') !== -1) track('clic_snapchat');
+    else if (a.href && (a.href.indexOf('wa.me') !== -1 || a.href.indexOf('whatsapp') !== -1)) track('clic_whatsapp');
+    else if (a.classList.contains('cat-open')) { const n = a.closest('.cat-card'); track('ouverture_catalogue', n ? n.querySelector('.cat-name').textContent : a.href); }
+    else if (a.id === 'payPaypal') track('clic_paiement', 'PayPal');
+    else if (a.id === 'payRevolut') track('clic_paiement', 'Revolut');
+    else if (a.id === 'shotCartBtn') track('envoi_selection', CART.size + ' article(s)');
+    else if (a.id === 'custSendBtn') track('envoi_coordonnees');
+    else if (a.id === 'imgSearchBtn') track('recherche_photo');
+  }, true);
+
   function toggleLike(id) {
-    if (LIKES.has(id)) LIKES.delete(id); else LIKES.add(id);
+    if (LIKES.has(id)) LIKES.delete(id); else { LIKES.add(id); track('ajout_favori', imName(id)); }
     saveIdSet('catalog_likes', LIKES);
   }
   function toggleCart(id) {
-    if (CART.has(id)) CART.delete(id); else CART.add(id);
+    if (CART.has(id)) CART.delete(id); else { CART.add(id); track('ajout_panier', imName(id)); }
     saveIdSet('catalog_cart', CART);
     renderCartUI();
   }
@@ -1472,6 +1491,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   })();
 
   function openLightbox(url) {
+    try { const im = CATALOG.images.find(function (x) { return x.url === url; }); track('photo_agrandie', im ? im.name : ''); } catch (e) {}
     document.getElementById('lightboxImg').src = url;
     document.getElementById('lightbox').classList.add('open');
   }
@@ -1982,6 +2002,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       const curCat = new URLSearchParams(h.slice(1)).get('c');
       if (lastNavHash !== null && prevCat !== curCat) history.pushState(null, '', url); else history.replaceState(null, '', url);
     } catch (e) {}
+    if (lastNavHash !== null) { const pc = new URLSearchParams((lastNavHash || '').slice(1)); const cc = new URLSearchParams(h.slice(1)); if (pc.get('c') !== cc.get('c') || pc.get('s') !== cc.get('s')) track('vue_rubrique', (cc.get('c') || 'Accueil') + (cc.get('s') ? ' > ' + cc.get('s') : '')); }
     lastNavHash = h;
   }
   function loadNav() {
