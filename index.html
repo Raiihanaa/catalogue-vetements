@@ -593,7 +593,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   const pageTitleEl = document.getElementById('pageTitle');
   const sortBar = document.getElementById('sortBar');
   const sortSelect = document.getElementById('sortSelect');
-  sortSelect.addEventListener('change', function () { renderGrid(); });
+  sortSelect.addEventListener('change', function () { renderGrid(); saveNav(); });
   const adminToggle = document.getElementById('adminToggle');
   const adminPanel = document.getElementById('adminPanel');
   const categoryBlocksEl = document.getElementById('categoryBlocks');
@@ -1248,6 +1248,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     renderGrid();
     renderCartUI();
     if (isAdmin) renderCategoryBlocks();
+    saveNav();
   }
 
   function renderFavCount() {
@@ -1960,7 +1961,49 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if (navigator.clipboard) navigator.clipboard.writeText(txt).then(done, done); else { try { document.execCommand('copy'); } catch (e) {} done(); }
     });
   })();
+  // === Mémoriser la rubrique ouverte dans l'adresse (rechargement + bouton retour) ===
+  let navRestoring = false, lastNavHash = null;
+  function navHash() {
+    const p = new URLSearchParams();
+    if (activeCategory !== '__all__') p.set('c', activeCategory);
+    if (activeSubcategory !== '__all__') p.set('s', activeSubcategory);
+    if (activeBrand !== '__all__') p.set('b', activeBrand);
+    if (sortSelect.value) p.set('tri', sortSelect.value);
+    const h = p.toString();
+    return h ? '#' + h : '';
+  }
+  function saveNav() {
+    if (navRestoring) return;
+    const h = navHash();
+    if (h === lastNavHash) return;
+    const url = location.pathname + location.search + h;
+    try {
+      const prevCat = lastNavHash === null ? null : new URLSearchParams((lastNavHash || '').slice(1)).get('c');
+      const curCat = new URLSearchParams(h.slice(1)).get('c');
+      if (lastNavHash !== null && prevCat !== curCat) history.pushState(null, '', url); else history.replaceState(null, '', url);
+    } catch (e) {}
+    lastNavHash = h;
+  }
+  function loadNav() {
+    const p = new URLSearchParams((location.hash || '').slice(1));
+    const c = p.get('c') || '__all__';
+    const special = ['__all__', '__infos__', '__catalogues__', '__favorites__', '__featured__'];
+    const cat = CATALOG.categories.find(function (x) { return x.name === c; });
+    activeCategory = (special.indexOf(c) !== -1 || cat) ? c : '__all__';
+    const s = p.get('s') || '__all__';
+    activeSubcategory = (cat && s !== '__all__' && (cat.subcategories || []).some(function (x) { return x.name === s; })) ? s : '__all__';
+    activeBrand = p.get('b') || '__all__';
+    const t = p.get('tri') || '';
+    if (Array.from(sortSelect.options).some(function (o) { return o.value === t; })) sortSelect.value = t;
+    lastNavHash = navHash();
+  }
+  window.addEventListener('popstate', function () { navRestoring = true; loadNav(); renderAll(); navRestoring = false; window.scrollTo(0, 0); });
+  // position de défilement conservée au rechargement
+  let scrollTimer = null;
+  window.addEventListener('scroll', function () { clearTimeout(scrollTimer); scrollTimer = setTimeout(function () { try { sessionStorage.setItem('scroll_' + location.pathname + location.hash, String(window.scrollY)); } catch (e) {} }, 200); }, { passive: true });
+  loadNav();
   renderAll();
+  try { const y = parseInt(sessionStorage.getItem('scroll_' + location.pathname + location.hash) || '0', 10); if (y > 0) setTimeout(function () { window.scrollTo(0, y); }, 300); } catch (e) {}
 })();
 </script>
 
