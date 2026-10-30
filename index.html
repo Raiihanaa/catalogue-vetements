@@ -405,6 +405,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .info-page li { margin-bottom: 4px; }
   .info-page p { margin: 0; font-size: 14px; }
 </style>
+<script>
+// Ne pas compter les visites de la propriétaire : ouvrir le site une fois avec ?moi=1 (ou ?admin=1) sur chaque appareil
+try { if (/[?&](moi|admin)=1/.test(location.search)) { localStorage.setItem('skipgc', 't'); localStorage.setItem('notrack', '1'); } if (/[?&]moi=0/.test(location.search)) { localStorage.removeItem('skipgc'); localStorage.removeItem('notrack'); } } catch (e) {}
+</script>
 <script data-goatcounter="https://raihana.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body>
@@ -653,6 +657,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   const SITE_TAG = 'bigh';
   function imName(id) { const im = CATALOG.images.find(function (x) { return x.id === id; }); return im ? (im.name || id) : id; }
   function track(name, label) {
+    try { if (localStorage.getItem('notrack') === '1') return; } catch (e) {}
     try { window.dataLayer = window.dataLayer || []; window.dataLayer.push({ event: 'site_' + name, site: SITE_TAG, label: label || '' }); } catch (e) {}
     try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: SITE_TAG + '-' + name + (label ? ' : ' + String(label).slice(0, 120) : ''), title: label || name, event: true }); } catch (e) {}
   }
