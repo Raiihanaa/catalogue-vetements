@@ -2023,6 +2023,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if (lastNavHash !== null && prevCat !== curCat) history.pushState(null, '', url); else history.replaceState(null, '', url);
     } catch (e) {}
     if (lastNavHash !== null) { const pc = new URLSearchParams((lastNavHash || '').slice(1)); const cc = new URLSearchParams(h.slice(1)); if (pc.get('c') !== cc.get('c') || pc.get('s') !== cc.get('s')) track('vue_rubrique', (cc.get('c') || 'Accueil') + (cc.get('s') ? ' > ' + cc.get('s') : '')); }
+    if (lastNavHash !== null) { const pc2 = new URLSearchParams((lastNavHash || '').slice(1)); const cc2 = new URLSearchParams(h.slice(1)); if (pc2.get('c') !== cc2.get('c') || pc2.get('s') !== cc2.get('s') || pc2.get('b') !== cc2.get('b')) window.scrollTo(0, 0); }
     lastNavHash = h;
   }
   function loadNav() {
